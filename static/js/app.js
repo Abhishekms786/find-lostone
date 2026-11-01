@@ -212,5 +212,26 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  console.log('[FindIt] App initialized ✓');
+  /* ============================================================
+     PREVENT DOUBLE SUBMISSION & LOADING STATE ON BUTTONS
+     ============================================================ */
+  document.querySelectorAll('form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      if (form.dataset.submitting === 'true') {
+        e.preventDefault();
+        return;
+      }
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn && !form.classList.contains('no-spin')) {
+        form.dataset.submitting = 'true';
+        submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+        submitBtn.style.minWidth = submitBtn.offsetWidth + 'px';
+        submitBtn.innerHTML = '<span class="spinner-inline"></span> Processing...';
+        submitBtn.style.opacity = '0.85';
+      }
+    });
+  });
+
+  console.log('[FindIt] App initialized successfully.');
 });
+

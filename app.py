@@ -36,20 +36,34 @@ DB_NAME   = os.environ.get('DB_NAME', 'findit_db')
 
 client = None
 db     = None
+db_error_message = None
 
 def get_db():
     """Return the database handle, connecting lazily."""
-    global client, db
+    global client, db, db_error_message
     if db is None:
         try:
-            client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-            client.server_info()          # raises if unreachable
+            client = MongoClient(
+                MONGO_URI,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=5000
+            )
+            # Verify server responsiveness (works for local MongoDB and Atlas)
+            client.admin.command('ping')
             db = client[DB_NAME]
             _create_indexes(db)
             _seed_admin(db)
-            print(f"[FindIt] Connected to MongoDB -> {DB_NAME}")
-        except ConnectionFailure as exc:
-            print(f"[FindIt] MongoDB connection failed: {exc}")
+            db_error_message = None
+            # Mask any passwords in MONGO_URI for secure logging
+            safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', MONGO_URI)
+            is_cloud = MONGO_URI.startswith('mongodb+srv://')
+            db_type = 'MongoDB Atlas Cloud' if is_cloud else 'Local MongoDB'
+            print(f"[FindIt] Connected to {db_type} ({safe_uri}) -> database: {DB_NAME}")
+        except Exception as exc:
+            db_error_message = str(exc)
+            safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', MONGO_URI)
+            print(f"[FindIt] MongoDB connection failed for {safe_uri}: {exc}")
             db = None
     return db
 
@@ -140,8 +154,11 @@ def db_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if get_db() is None:
-            return render_template('error.html',
-                                   message='Database unavailable. Please check MongoDB connection.'), 503
+            err = db_error_message or "Connection failed"
+            return render_template(
+                'error.html',
+                message=f'MongoDB is currently unreachable ({err}). Please ensure your MongoDB instance is running or verify MONGO_URI in your .env file.'
+            ), 503
         return f(*args, **kwargs)
     return decorated
 
@@ -231,9 +248,10 @@ def browse():
 
     query = {'status': {'$ne': 'deleted'}}
     if q:
+        safe_q = re.escape(q)
         query['$or'] = [
-            {'title'      : {'$regex': q, '$options': 'i'}},
-            {'description': {'$regex': q, '$options': 'i'}},
+            {'title'      : {'$regex': safe_q, '$options': 'i'}},
+            {'description': {'$regex': safe_q, '$options': 'i'}},
         ]
     if item_type in ('lost', 'found'):
         query['type'] = item_type
@@ -676,9 +694,10 @@ def admin_dashboard():
 
     query = {}
     if q:
+        safe_q = re.escape(q)
         query['$or'] = [
-            {'title'      : {'$regex': q, '$options': 'i'}},
-            {'description': {'$regex': q, '$options': 'i'}},
+            {'title'      : {'$regex': safe_q, '$options': 'i'}},
+            {'description': {'$regex': safe_q, '$options': 'i'}},
         ]
     if item_type in ('lost', 'found'):
         query['type'] = item_type
@@ -757,6 +776,29 @@ def api_stats():
         'found'   : database.items.count_documents({'type': 'found'}),
         'returned': database.items.count_documents({'status': 'returned'}),
     })
+
+
+@app.route('/api/health')
+def api_health():
+    database = get_db()
+    is_connected = (database is not None)
+    is_cloud = MONGO_URI.startswith('mongodb+srv://')
+
+    data = {
+        'status': 'healthy' if is_connected else 'unhealthy',
+        'database_type': 'MongoDB Atlas Cloud' if is_cloud else 'Local MongoDB',
+        'database_name': DB_NAME,
+        'connected': is_connected,
+    }
+    if not is_connected:
+        data['error'] = db_error_message or 'Database connection failed'
+    else:
+        data['collections'] = {
+            'users': database.users.count_documents({}),
+            'items': database.items.count_documents({}),
+            'claims': database.claims.count_documents({}),
+        }
+    return jsonify(data), (200 if is_connected else 503)
 
 
 # ─────────────────────────────────────────────
