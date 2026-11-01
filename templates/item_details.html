@@ -117,23 +117,40 @@
             {% endif %}
           </div>
         {% else %}
-          <div class="claim-form-card">
-            <h3>📨 Submit Claim / Recovery Request</h3>
-            <p class="claim-hint" style="color:#475569">
-              <strong>Campus Admin Handover:</strong> When you send a request, it goes directly to the <strong>Campus Admin</strong>. The Admin verifies proof of ownership and arranges the safe handover to the original owner.
+          <div class="claim-form-card" style="border: 2px solid #3b82f6; border-radius: 12px; padding: 1.25rem; background: #f8fafc;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.5rem">
+              <span style="font-size:1.4rem">📨</span>
+              <h3 style="margin:0">Request Item / Claim Ownership</h3>
+            </div>
+            <p class="claim-hint" style="color:#475569; font-size:0.875rem; margin-bottom:1rem; line-height:1.4">
+              <strong>Campus Admin Verification:</strong> When you send this request, it goes directly to the <strong>Campus Admin</strong>. The Admin will review your proof, <strong>contact you via your phone number</strong>, and arrange the safe handover.
             </p>
             <form method="POST" action="{{ url_for('submit_claim', item_id=item._id) }}">
-              <div style="margin-bottom:0.75rem">
-                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem">Your Contact Info (Phone / Student Email)</label>
-                <input type="text" name="contact" class="form-input" placeholder="e.g. 9876543210 or student@vvce.ac.in" style="width:100%" />
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-bottom:0.75rem">
+                <div>
+                  <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem">
+                    📱 Your Phone Number <span style="color:#dc2626">*</span>
+                  </label>
+                  <input type="tel" name="phone" class="form-input" placeholder="e.g. 9845012345"
+                         value="{{ current_user.phone or '' }}" required style="width:100%" />
+                </div>
+                <div>
+                  <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem">
+                    🎓 Student USN / ID
+                  </label>
+                  <input type="text" name="student_id" class="form-input" placeholder="e.g. 4VV21CS042"
+                         value="{{ current_user.student_id or '' }}" style="width:100%" />
+                </div>
               </div>
               <div style="margin-bottom:0.75rem">
-                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem">Proof of Ownership / Message</label>
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem">
+                  📝 Proof of Ownership &amp; Message for Admin <span style="color:#dc2626">*</span>
+                </label>
                 <textarea name="message" class="form-textarea" rows="3"
-                          placeholder="Describe specific identification marks, serial numbers, exact date/time, or why this item belongs to you…"
+                          placeholder="Describe specific identification marks, serial numbers, brand, where/when you lost it, or why this item belongs to you…"
                           required minlength="3"></textarea>
               </div>
-              <button type="submit" class="btn btn-primary btn-full">
+              <button type="submit" class="btn btn-primary btn-full" style="padding:0.75rem; font-weight:600">
                 📨 Send Request to Admin for Handover
               </button>
             </form>

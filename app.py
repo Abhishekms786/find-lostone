@@ -837,36 +837,45 @@ def submit_claim(item_id):
             return redirect(url_for('item_details', item_id=item_id))
 
         message = request.form.get('message', '').strip()
+        phone = request.form.get('phone', '').strip()
         contact = request.form.get('contact', '').strip()
+        student_id = request.form.get('student_id', '').strip() or request.form.get('usn', '').strip()
+
+        claimant_phone = phone or contact or user.get('phone', '')
+        claimant_student_id = student_id or user.get('student_id', '')
+
         if not message or len(message) < 3:
             flash('Please describe your proof of ownership or message for the admin verification.', 'danger')
             return redirect(url_for('item_details', item_id=item_id))
 
-        full_message = f"{message} (Claimant Contact: {contact})" if contact else message
+        full_message = f"{message} (Contact Phone: {claimant_phone})" if claimant_phone else message
+
+        claim_data = {
+            'item_id'       : item['_id'],
+            'requester_id'  : user['_id'],
+            'claimant_name' : user.get('name', 'Student Claimant'),
+            'claimant_email': user.get('email', ''),
+            'claimant_phone': claimant_phone,
+            'phone'         : claimant_phone,
+            'student_id'    : claimant_student_id,
+            'message'       : message,
+            'full_message'  : full_message,
+            'status'        : 'pending',
+            'created_at'    : datetime.now(timezone.utc),
+        }
 
         if database is not None:
             try:
-                database.claims.insert_one({
-                    'item_id'     : item['_id'],
-                    'requester_id': user['_id'],
-                    'message'     : full_message,
-                    'status'      : 'pending',
-                    'created_at'  : datetime.now(timezone.utc),
-                })
+                database.claims.insert_one(claim_data)
                 flash('📨 Claim request submitted to Campus Admin! Admin will verify and coordinate handover to the original owner.', 'success')
                 return redirect(url_for('item_details', item_id=item_id))
             except Exception:
                 pass
 
         # Fallback claim recording in-memory
-        FALLBACK_CLAIMS.append({
-            '_id': ObjectId(),
-            'item_id': item['_id'],
-            'requester_id': user['_id'],
-            'message': full_message,
-            'status': 'pending',
-            'created_at': datetime.now(timezone.utc)
-        })
+        fallback_claim = dict(claim_data)
+        fallback_claim['_id'] = ObjectId()
+        FALLBACK_CLAIMS.append(fallback_claim)
         flash('📨 Claim request submitted to Campus Admin! Admin will verify and coordinate handover to the original owner.', 'success')
         return redirect(url_for('item_details', item_id=item_id))
     except Exception as exc:
@@ -977,6 +986,28 @@ def admin_dashboard():
                 c['requester'] = database.users.find_one({'_id': c['requester_id']}) or get_fallback_user_by_id(c['requester_id'])
                 if c.get('item'):
                     c['owner'] = database.users.find_one({'_id': c['item'].get('created_by')}) or get_fallback_user_by_id(c['item'].get('created_by'))
+                
+                # Resolve phone number
+                phone = c.get('phone') or c.get('claimant_phone')
+                if not phone and c.get('requester'):
+                    phone = c['requester'].get('phone')
+                c['phone'] = phone or ''
+
+                # Resolve student_id / USN
+                sid = c.get('student_id')
+                if not sid and c.get('requester'):
+                    sid = c['requester'].get('student_id')
+                c['student_id'] = sid or ''
+
+                # Digits for WhatsApp and tel link
+                if c['phone']:
+                    digits = re.sub(r'\D', '', str(c['phone']))
+                    if len(digits) == 10:
+                        digits = '91' + digits
+                    c['phone_digits'] = digits
+                else:
+                    c['phone_digits'] = ''
+
                 claims_list.append(c)
 
             stats = {
@@ -1013,6 +1044,28 @@ def admin_dashboard():
         c['requester'] = get_fallback_user_by_id(c.get('requester_id'))
         if c.get('item'):
             c['owner'] = get_fallback_user_by_id(c['item'].get('created_by'))
+
+        # Resolve phone number
+        phone = c.get('phone') or c.get('claimant_phone')
+        if not phone and c.get('requester'):
+            phone = c['requester'].get('phone')
+        c['phone'] = phone or ''
+
+        # Resolve student_id / USN
+        sid = c.get('student_id')
+        if not sid and c.get('requester'):
+            sid = c['requester'].get('student_id')
+        c['student_id'] = sid or ''
+
+        # Digits for WhatsApp and tel link
+        if c['phone']:
+            digits = re.sub(r'\D', '', str(c['phone']))
+            if len(digits) == 10:
+                digits = '91' + digits
+            c['phone_digits'] = digits
+        else:
+            c['phone_digits'] = ''
+
         claims_list.append(c)
 
     stats = {

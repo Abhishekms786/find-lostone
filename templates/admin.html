@@ -4,9 +4,16 @@
 {% block content %}
 <div class="admin-page">
   <div class="container">
-    <div class="admin-header">
-      <h1>🛡 Admin Dashboard</h1>
-      <p>FindIt Campus Lost & Found – Admin Control Panel</p>
+    <div class="admin-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem">
+      <div>
+        <h1 style="margin:0 0 0.25rem 0">🛡 Admin Dashboard</h1>
+        <p style="margin:0; color:#64748b">VVCE Mysuru Campus Lost &amp; Found – Admin Control &amp; Handover Panel</p>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary" onclick="document.querySelector('[data-tab=admin-claims]').click()" style="display:inline-flex; align-items:center; gap:8px; font-weight:600; box-shadow:0 2px 6px rgba(37,99,235,0.25); cursor:pointer">
+          <span>🔔</span> Student Requested ({{ claims|length }})
+        </button>
+      </div>
     </div>
 
     <!-- Stats Cards -->
@@ -36,27 +43,22 @@
         <div class="admin-stat-value">{{ stats.active_items }}</div>
         <div class="admin-stat-label">Active</div>
       </div>
-      <div class="admin-stat-card admin-stat-orange">
-        <div class="admin-stat-icon">🔒</div>
-        <div class="admin-stat-value">{{ stats.claimed_items }}</div>
-        <div class="admin-stat-label">Claimed</div>
-      </div>
       <div class="admin-stat-card admin-stat-purple">
         <div class="admin-stat-icon">🤝</div>
         <div class="admin-stat-value">{{ stats.returned_items }}</div>
-        <div class="admin-stat-label">Returned</div>
+        <div class="admin-stat-label">Handed Over</div>
       </div>
-      <div class="admin-stat-card">
-        <div class="admin-stat-icon">📨</div>
-        <div class="admin-stat-value">{{ stats.total_claims }}</div>
-        <div class="admin-stat-label">Claims</div>
+      <div class="admin-stat-card" style="cursor:pointer; border: 2px solid #2563eb; background:#eff6ff" onclick="document.querySelector('[data-tab=admin-claims]').click()" title="Click to view Student Requested items">
+        <div class="admin-stat-icon">🔔</div>
+        <div class="admin-stat-value" style="color:#1d4ed8">{{ claims|length }}</div>
+        <div class="admin-stat-label" style="font-weight:700; color:#1e40af">Student Requested</div>
       </div>
     </div>
 
     <!-- Admin Tabs -->
     <div class="dashboard-tabs" id="adminTabs">
       <button class="dash-tab active" data-tab="admin-items">📦 All Items</button>
-      <button class="dash-tab" data-tab="admin-claims">📨 Claims & Handovers ({{ claims|length }})</button>
+      <button class="dash-tab" data-tab="admin-claims" id="btnStudentRequested">🔔 Student Requested ({{ claims|length }})</button>
       <button class="dash-tab" data-tab="admin-users">👥 Registered Students</button>
     </div>
 
@@ -140,11 +142,15 @@
       {% endif %}
     </div>
 
-    <!-- CLAIMS & HANDOVERS Tab -->
+    <!-- STUDENT REQUESTED Tab -->
     <div class="tab-content" id="tab-admin-claims">
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; margin-bottom:1.5rem">
-        <p style="margin:0; font-size:0.9rem; color:#475569">
-          <strong>🛡️ Campus Handover Workflow:</strong> When students submit claim requests for lost or found items, they are routed here to the Campus Admin. Review the proof of ownership below and click <strong>"🤝 Handover to Owner"</strong> to verify and mark the item as safely returned to its rightful owner.
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:1.25rem; margin-bottom:1.5rem">
+        <h3 style="margin:0 0 0.5rem 0; color:#166534; font-size:1.1rem; display:flex; align-items:center; gap:8px">
+          <span>🔔</span> Student Requested Items &amp; Contact Center
+        </h3>
+        <p style="margin:0; font-size:0.9rem; color:#15803d; line-height:1.5">
+          When students request a lost or found item, their details, <strong>phone number</strong>, and proof of ownership appear below.
+          As Admin, you can <strong>click Call or WhatsApp</strong> to contact the student directly, verify their ID card/ownership proof, and click <strong>"🤝 Handover to Student"</strong> to safely return the item.
         </p>
       </div>
 
@@ -153,12 +159,13 @@
           <table class="items-table">
             <thead>
               <tr>
-                <th>Item</th>
+                <th>Item Details</th>
                 <th>Type</th>
-                <th>Reported By (Reporter)</th>
-                <th>Claimant &amp; Proof</th>
+                <th>Reported By</th>
+                <th>Student Requester</th>
+                <th>📱 Contact Phone</th>
+                <th>📝 Proof / Details</th>
                 <th>Status</th>
-                <th>Date</th>
                 <th>Admin Actions</th>
               </tr>
             </thead>
@@ -167,9 +174,10 @@
                 <tr>
                   <td>
                     {% if claim.item %}
-                      <a href="{{ url_for('item_details', item_id=claim.item._id) }}" class="table-item-link">
+                      <a href="{{ url_for('item_details', item_id=claim.item._id) }}" class="table-item-link" style="font-weight:600">
                         {{ claim.item.title }}
                       </a>
+                      <div style="font-size:0.8rem; color:#64748b">📍 {{ claim.item.location or 'Campus' }}</div>
                     {% else %}
                       <span>Item #{{ claim.item_id }}</span>
                     {% endif %}
@@ -186,8 +194,36 @@
                     <div style="font-size:0.8rem; color:#64748b">{{ claim.owner.email if claim.owner else '' }}</div>
                   </td>
                   <td>
-                    <div style="font-weight:600; color:#1e40af">{{ claim.requester.name if claim.requester else 'Student Claimant' }}</div>
-                    <div style="font-size:0.85rem; color:#334155; margin-top:2px">"{{ claim.message }}"</div>
+                    <div style="font-weight:700; color:#1e40af">{{ claim.requester.name if claim.requester else (claim.claimant_name or 'Student Claimant') }}</div>
+                    {% if claim.student_id or (claim.requester and claim.requester.student_id) %}
+                      <span class="badge badge-secondary" style="font-size:0.75rem; margin-top:2px">
+                        🎓 {{ claim.student_id or claim.requester.student_id }}
+                      </span>
+                    {% endif %}
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:2px">{{ claim.requester.email if claim.requester else claim.claimant_email }}</div>
+                  </td>
+                  <td>
+                    {% if claim.phone %}
+                      <div style="font-weight:700; color:#065f46; font-size:0.9rem; background:#ecfdf5; border:1px solid #a7f3d0; padding:4px 8px; border-radius:6px; display:inline-block; margin-bottom:6px">
+                        📱 {{ claim.phone }}
+                      </div>
+                      <div style="display:flex; gap:4px; flex-wrap:wrap">
+                        <a href="tel:{{ claim.phone }}" class="btn btn-primary btn-xs" style="padding:2px 8px; font-size:0.75rem" title="Click to call student on phone">
+                          📞 Call
+                        </a>
+                        <a href="https://wa.me/{{ claim.phone_digits }}?text=Hello%20{{ (claim.requester.name if claim.requester else 'Student')|urlencode }},%20this%20is%20VVCE%20Campus%20Admin%20regarding%20your%20lost%20item%20request%20for%20{{ (claim.item.title if claim.item else 'item')|urlencode }}."
+                           target="_blank" class="btn btn-success btn-xs" style="padding:2px 8px; font-size:0.75rem; background:#16a34a" title="Open WhatsApp chat with student">
+                          💬 WhatsApp
+                        </a>
+                      </div>
+                    {% else %}
+                      <span style="font-size:0.8rem; color:#94a3b8; font-style:italic">No phone provided</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div style="font-size:0.85rem; color:#1e293b; background:#f8fafc; border:1px solid #e2e8f0; border-left:3px solid #3b82f6; padding:8px 10px; border-radius:6px; max-width:240px; word-break:break-word">
+                      "{{ claim.message }}"
+                    </div>
                   </td>
                   <td>
                     {% if claim.status == 'accepted' %}
@@ -195,26 +231,29 @@
                     {% elif claim.status == 'rejected' %}
                       <span class="badge badge-danger">Rejected</span>
                     {% else %}
-                      <span class="badge badge-status-claimed">⏳ Pending Admin</span>
+                      <span class="badge badge-status-claimed">⏳ Pending Verification</span>
                     {% endif %}
                   </td>
-                  <td>{{ claim.created_at.strftime('%b %d, %Y') if claim.created_at else '' }}</td>
                   <td>
                     {% if claim.status == 'pending' %}
-                      <div class="table-actions">
-                        <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}" style="display:inline">
+                      <div class="table-actions" style="display:flex; flex-direction:column; gap:4px">
+                        <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}">
                           <input type="hidden" name="action" value="accept" />
-                          <button type="submit" class="btn btn-success btn-xs">🤝 Handover to Owner</button>
+                          <button type="submit" class="btn btn-success btn-xs" style="width:100%" onclick="return confirm('Confirm handover to student {{ claim.requester.name if claim.requester else '' }}?')">
+                            🤝 Handover to Student
+                          </button>
                         </form>
-                        <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}" style="display:inline">
+                        <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}">
                           <input type="hidden" name="action" value="reject" />
-                          <button type="submit" class="btn btn-outline-danger btn-xs">✕ Reject</button>
+                          <button type="submit" class="btn btn-outline-danger btn-xs" style="width:100%" onclick="return confirm('Reject this request?')">
+                            ✕ Reject
+                          </button>
                         </form>
                       </div>
                     {% elif claim.status == 'accepted' %}
-                      <span style="font-size:0.8rem; color:#16a34a; font-weight:600">✓ Returned to Owner</span>
+                      <span style="font-size:0.8rem; color:#16a34a; font-weight:600">✓ Item Returned</span>
                     {% else %}
-                      <span style="font-size:0.8rem; color:#64748b">Claim Closed</span>
+                      <span style="font-size:0.8rem; color:#64748b">Closed</span>
                     {% endif %}
                   </td>
                 </tr>
@@ -224,8 +263,8 @@
         </div>
       {% else %}
         <div class="empty-state">
-          <div class="empty-icon">📨</div>
-          <p>No student claim requests pending.</p>
+          <div class="empty-icon">🔔</div>
+          <p>No student requests pending at this time.</p>
         </div>
       {% endif %}
     </div>

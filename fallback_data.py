@@ -17,6 +17,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000001'),
         'name': 'Prajwal Gowda',
         'email': 'prajwal.gowda@vvce.ac.in',
+        'phone': '9845012345',
+        'student_id': '4VV21CS085',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=60)
@@ -25,6 +27,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000002'),
         'name': 'Ananya Bhat',
         'email': 'ananya.bhat@vvce.ac.in',
+        'phone': '9480123456',
+        'student_id': '4VV21IS012',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=55)
@@ -33,6 +37,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000003'),
         'name': 'Darshan Kumar M',
         'email': 'darshan.km@vvce.ac.in',
+        'phone': '9900145678',
+        'student_id': '4VV21EC034',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=50)
@@ -41,6 +47,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000004'),
         'name': 'Spandana Hegde',
         'email': 'spandana.hegde@vvce.ac.in',
+        'phone': '9741258963',
+        'student_id': '4VV21CS115',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=45)
@@ -49,6 +57,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000005'),
         'name': 'Chethan Gowda K',
         'email': 'chethan.gk@vvce.ac.in',
+        'phone': '9844036985',
+        'student_id': '4VV21ME021',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=40)
@@ -57,6 +67,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000006'),
         'name': 'Varsha Kulkarni',
         'email': 'varsha.k@vvce.ac.in',
+        'phone': '9611478523',
+        'student_id': '4VV21AI048',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=35)
@@ -65,6 +77,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000007'),
         'name': 'Rohith Shenoy',
         'email': 'rohith.shenoy@vvce.ac.in',
+        'phone': '9448012398',
+        'student_id': '4VV21CV019',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=30)
@@ -73,6 +87,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000008'),
         'name': 'Sinchana Rao',
         'email': 'sinchana.rao@vvce.ac.in',
+        'phone': '9880045612',
+        'student_id': '4VV21IS088',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=25)
@@ -81,6 +97,8 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec010000000000000009'),
         'name': 'Likith N',
         'email': 'likith.n@vvce.ac.in',
+        'phone': '9632145870',
+        'student_id': '4VV21CS062',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=20)
@@ -89,14 +107,18 @@ FALLBACK_USERS = [
         '_id': ObjectId('6724ec01000000000000000a'),
         'name': 'Tejaswini Murthy',
         'email': 'tejaswini.m@vvce.ac.in',
+        'phone': '9739012458',
+        'student_id': '4VV21EC092',
         'password_hash': generate_password_hash('Password123'),
         'role': 'student',
         'created_at': now - timedelta(days=15)
     },
     {
         '_id': ObjectId('6724ec010000000000000000'),
-        'name': 'Administrator',
+        'name': 'Campus Admin Office',
         'email': 'admin@findit.edu',
+        'phone': '0821-4276200',
+        'student_id': 'ADMIN-VVCE',
         'password_hash': generate_password_hash('Admin@1234'),
         'role': 'admin',
         'created_at': now - timedelta(days=90)
@@ -445,10 +467,40 @@ FALLBACK_CLAIMS = [
         '_id': ObjectId('6724ee010000000000000001'),
         'item_id': ObjectId('6724ed010000000000000010'),
         'requester_id': _prajwal,
-        'message': 'This is my Yonex racket, I left it in the gym locker Saturday morning.',
-        'status': 'approved',
+        'claimant_name': 'Prajwal Gowda',
+        'claimant_email': 'prajwal.gowda@vvce.ac.in',
+        'phone': '9845012345',
+        'student_id': '4VV21CS085',
+        'message': 'This is my Yonex racket. I left it in the gym locker Saturday morning during badminton practice.',
+        'status': 'accepted',
         'created_at': now - timedelta(days=1),
         'updated_at': now - timedelta(days=1)
+    },
+    {
+        '_id': ObjectId('6724ee010000000000000002'),
+        'item_id': ObjectId('6724ed010000000000000001'),
+        'requester_id': _darshan,
+        'claimant_name': 'Darshan Kumar M',
+        'claimant_email': 'darshan.km@vvce.ac.in',
+        'phone': '9900145678',
+        'student_id': '4VV21EC034',
+        'message': 'I lost my Casio fx-991CW calculator in CS Lab 2 during the afternoon DSP test. It has my USN scratched on back cover.',
+        'status': 'pending',
+        'created_at': now - timedelta(hours=3),
+        'updated_at': now - timedelta(hours=3)
+    },
+    {
+        '_id': ObjectId('6724ee010000000000000003'),
+        'item_id': ObjectId('6724ed010000000000000005'),
+        'requester_id': _spandana,
+        'claimant_name': 'Spandana Hegde',
+        'claimant_email': 'spandana.hegde@vvce.ac.in',
+        'phone': '9741258963',
+        'student_id': '4VV21CS115',
+        'message': 'This boat Rockerz earphone case is mine. Left on Library 2nd floor silent study table. Serial number ends with 409.',
+        'status': 'pending',
+        'created_at': now - timedelta(hours=1),
+        'updated_at': now - timedelta(hours=1)
     }
 ]
 
