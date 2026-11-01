@@ -217,7 +217,12 @@
                         </a>
                       </div>
                     {% else %}
-                      <span style="font-size:0.8rem; color:#94a3b8; font-style:italic">No phone provided</span>
+                      <span style="font-size:0.8rem; color:#94a3b8; font-style:italic; display:block; margin-bottom:4px">No phone recorded</span>
+                      {% if claim.requester and claim.requester.email %}
+                        <a href="mailto:{{ claim.requester.email }}" class="btn btn-outline-primary btn-xs" style="padding:2px 8px; font-size:0.75rem">
+                          ✉️ Email Student
+                        </a>
+                      {% endif %}
                     {% endif %}
                   </td>
                   <td>
