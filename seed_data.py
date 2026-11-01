@@ -6,6 +6,13 @@ WARNING: Running again will skip existing items (safe to re-run).
 """
 
 import os
+import sys
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
@@ -19,7 +26,7 @@ DB_NAME   = os.environ.get('DB_NAME', 'findit_db')
 client = MongoClient(MONGO_URI)
 db     = client[DB_NAME]
 
-print(f"[Seed] Connecting to {DB_NAME}…")
+print(f"[Seed] Connecting to {DB_NAME}...")
 
 # ── Demo users ──────────────────────────────────
 demo_users = [

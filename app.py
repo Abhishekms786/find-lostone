@@ -1,5 +1,13 @@
 import os
+import sys
 import re
+
+# Ensure Windows terminal doesn't crash on unicode console output
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 from datetime import datetime, timedelta
 from functools import wraps
 from bson import ObjectId
@@ -11,18 +19,18 @@ from pymongo.errors import DuplicateKeyError, ConnectionFailure
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
-# ─────────────────────────────────────────────
+# ---------------------------------------------
 # Configuration
-# ─────────────────────────────────────────────
+# ---------------------------------------------
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.permanent_session_lifetime = timedelta(days=7)
 
-# ─────────────────────────────────────────────
+# ---------------------------------------------
 # MongoDB Connection
-# ─────────────────────────────────────────────
+# ---------------------------------------------
 MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
 DB_NAME   = os.environ.get('DB_NAME', 'findit_db')
 
@@ -39,7 +47,7 @@ def get_db():
             db = client[DB_NAME]
             _create_indexes(db)
             _seed_admin(db)
-            print(f"[FindIt] Connected to MongoDB → {DB_NAME}")
+            print(f"[FindIt] Connected to MongoDB -> {DB_NAME}")
         except ConnectionFailure as exc:
             print(f"[FindIt] MongoDB connection failed: {exc}")
             db = None
@@ -68,7 +76,7 @@ def _seed_admin(database):
             'role'         : 'admin',
             'created_at'   : datetime.utcnow(),
         })
-        print(f"[FindIt] Admin account created → {admin_email}")
+        print(f"[FindIt] Admin account created -> {admin_email}")
 
 
 # ─────────────────────────────────────────────
@@ -172,12 +180,12 @@ def not_found(e):
 
 @app.errorhandler(403)
 def forbidden(e):
-    return render_template('error.html', message='403 – Forbidden'), 403
+    return render_template('error.html', message='403 - Forbidden'), 403
 
 
 @app.errorhandler(500)
 def server_error(e):
-    return render_template('error.html', message='500 – Internal Server Error'), 500
+    return render_template('error.html', message='500 - Internal Server Error'), 500
 
 
 # ─────────────────────────────────────────────
