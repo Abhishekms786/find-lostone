@@ -17,13 +17,22 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
+try:
+    import certifi
+    CA_FILE = certifi.where()
+except ImportError:
+    CA_FILE = None
 
 load_dotenv()
 
 MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
 DB_NAME   = os.environ.get('DB_NAME', 'findit_db')
 
-client = MongoClient(MONGO_URI)
+mongo_kwargs = {}
+if CA_FILE and ('mongodb+srv://' in MONGO_URI or 'tls=true' in MONGO_URI.lower() or 'ssl=true' in MONGO_URI.lower()):
+    mongo_kwargs['tlsCAFile'] = CA_FILE
+
+client = MongoClient(MONGO_URI, **mongo_kwargs)
 db     = client[DB_NAME]
 
 print(f"[Seed] Connecting to {DB_NAME}...")

@@ -14,6 +14,11 @@ from datetime import datetime, timedelta, timezone
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
+try:
+    import certifi
+    CA_FILE = certifi.where()
+except ImportError:
+    CA_FILE = None
 
 load_dotenv()
 
@@ -24,7 +29,11 @@ if not MONGO_URI:
     print("[ERROR] MONGO_URI not found in .env")
     sys.exit(1)
 
-client = MongoClient(MONGO_URI)
+mongo_kwargs = {}
+if CA_FILE and ('mongodb+srv://' in MONGO_URI or 'tls=true' in MONGO_URI.lower() or 'ssl=true' in MONGO_URI.lower()):
+    mongo_kwargs['tlsCAFile'] = CA_FILE
+
+client = MongoClient(MONGO_URI, **mongo_kwargs)
 db = client[DB_NAME]
 now = datetime.now(timezone.utc)
 

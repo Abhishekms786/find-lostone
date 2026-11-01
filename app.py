@@ -28,6 +28,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.permanent_session_lifetime = timedelta(days=7)
 
+try:
+    import certifi
+    CA_FILE = certifi.where()
+except ImportError:
+    CA_FILE = None
+
 # ---------------------------------------------
 # MongoDB Connection
 # ---------------------------------------------
@@ -43,12 +49,15 @@ def get_db():
     global client, db, db_error_message
     if db is None:
         try:
-            client = MongoClient(
-                MONGO_URI,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=5000,
-                socketTimeoutMS=5000
-            )
+            mongo_kwargs = {
+                'serverSelectionTimeoutMS': 7000,
+                'connectTimeoutMS': 7000,
+                'socketTimeoutMS': 7000,
+            }
+            if CA_FILE and ('mongodb+srv://' in MONGO_URI or 'tls=true' in MONGO_URI.lower() or 'ssl=true' in MONGO_URI.lower()):
+                mongo_kwargs['tlsCAFile'] = CA_FILE
+
+            client = MongoClient(MONGO_URI, **mongo_kwargs)
             # Verify server responsiveness (works for local MongoDB and Atlas)
             client.admin.command('ping')
             db = client[DB_NAME]
