@@ -199,9 +199,12 @@ def test_10_item_status_update(client):
 # 11. Admin login
 def test_11_admin_login(client):
     """Test admin authentication and control panel access."""
+    import os
+    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@findit.edu')
+    admin_password = os.environ.get('ADMIN_PASSWORD', 'Admin@1234')
     res_login = client.post('/login', data={
-        'email': 'admin@findit.edu',
-        'password': 'Admin@1234'
+        'email': admin_email,
+        'password': admin_password
     }, follow_redirects=True)
     assert res_login.status_code == 200
 
