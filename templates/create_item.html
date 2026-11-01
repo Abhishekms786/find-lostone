@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Report Item – FindIt{% endblock %}
+
+{% block content %}
+<div class="container form-page">
+  <div class="form-page-header">
+    <h1>📋 Report an Item</h1>
+    <p>Fill in the details about the lost or found item.</p>
+  </div>
+
+  <div class="form-card">
+    <form method="POST" action="{{ url_for('create_item') }}" class="item-form" novalidate>
+
+      <!-- Type Toggle -->
+      <div class="form-group">
+        <label class="form-label">Item Type *</label>
+        <div class="type-toggle">
+          <label class="type-option {% if form_data.get('type', request.args.get('type','lost')) == 'lost' %}active{% endif %}">
+            <input type="radio" name="type" value="lost"
+                   {% if form_data.get('type', request.args.get('type','lost')) == 'lost' %}checked{% endif %}
+                   onchange="this.closest('.type-toggle').querySelectorAll('.type-option').forEach(o=>o.classList.remove('active'));this.parentElement.classList.add('active')" />
+            🔴 Lost Item
+          </label>
+          <label class="type-option {% if form_data.get('type', request.args.get('type','lost')) == 'found' %}active{% endif %}">
+            <input type="radio" name="type" value="found"
+                   {% if form_data.get('type', request.args.get('type','lost')) == 'found' %}checked{% endif %}
+                   onchange="this.closest('.type-toggle').querySelectorAll('.type-option').forEach(o=>o.classList.remove('active'));this.parentElement.classList.add('active')" />
+            🟢 Found Item
+          </label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="title" class="form-label">Item Title *</label>
+          <input type="text" id="title" name="title" value="{{ form_data.get('title','') }}"
+                 class="form-input" placeholder="e.g. Black Leather Wallet"
+                 required minlength="3" maxlength="100" />
+        </div>
+        <div class="form-group">
+          <label for="category" class="form-label">Category *</label>
+          <select id="category" name="category" class="form-select" required>
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if form_data.get('category','') == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Description *</label>
+        <textarea id="description" name="description" class="form-textarea" rows="4"
+                  placeholder="Describe the item in detail – colour, brand, markings, contents…"
+                  required minlength="10" maxlength="1000">{{ form_data.get('description','') }}</textarea>
+        <p class="form-hint">Be as specific as possible to help the right person identify the item.</p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="location" class="form-label">Location *</label>
+          <select id="location" name="location" class="form-select" required>
+            {% for loc in locations %}
+              <option value="{{ loc }}" {% if form_data.get('location','') == loc %}selected{% endif %}>{{ loc }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="date_lost_found" class="form-label">Date Lost / Found *</label>
+          <input type="date" id="date_lost_found" name="date_lost_found"
+                 value="{{ form_data.get('date_lost_found', '') }}"
+                 class="form-input"
+                 max="{{ now.strftime('%Y-%m-%d') if now else '' }}" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="image_url" class="form-label">Image URL (Optional)</label>
+        <input type="url" id="image_url" name="image_url"
+               value="{{ form_data.get('image_url','') }}"
+               class="form-input"
+               placeholder="https://example.com/photo.jpg" />
+        <p class="form-hint">Paste a direct link to a photo of the item (from Imgur, Google Photos, etc.)</p>
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary btn-lg">📋 Submit Report</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+<script>
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+  const dateInput = document.getElementById('date_lost_found');
+  if (!dateInput.value) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+    dateInput.max = today;
+  }
+});
+</script>

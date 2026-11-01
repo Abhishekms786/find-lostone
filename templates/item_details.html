@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% block title %}{{ item.title }} – FindIt{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top:2rem;padding-bottom:4rem">
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="breadcrumb">
+    <a href="{{ url_for('index') }}">Home</a>
+    <span>›</span>
+    <a href="{{ url_for('browse') }}">Browse</a>
+    <span>›</span>
+    <span>{{ item.title }}</span>
+  </nav>
+
+  <div class="item-detail-layout">
+    <!-- ===== LEFT: IMAGE ===== -->
+    <div class="item-detail-image-col">
+      <div class="item-detail-image-card">
+        {% if item.image_url %}
+          <img src="{{ item.image_url }}" alt="{{ item.title }}" class="item-detail-img"
+               onerror="this.style.display='none';document.getElementById('imgPlaceholder').style.display='flex'" />
+          <div id="imgPlaceholder" class="item-detail-placeholder" style="display:none">
+            {% set cat_icons = {'Electronics':'💻','Mobile Phones':'📱','Wallets':'👛','Identity Cards':'🪪','Books and Notes':'📚','Bags':'🎒','Keys':'🔑','Accessories':'💍','Clothing':'👕','Other':'📦'} %}
+            {{ cat_icons.get(item.category, '📦') }}
+          </div>
+        {% else %}
+          <div class="item-detail-placeholder" id="imgPlaceholder">
+            {% set cat_icons = {'Electronics':'💻','Mobile Phones':'📱','Wallets':'👛','Identity Cards':'🪪','Books and Notes':'📚','Bags':'🎒','Keys':'🔑','Accessories':'💍','Clothing':'👕','Other':'📦'} %}
+            {{ cat_icons.get(item.category, '📦') }}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Owner Actions -->
+      {% if current_user and (current_user._id == item.created_by or current_user.role == 'admin') %}
+        <div class="owner-actions-card">
+          <h4>Manage Item</h4>
+          <form method="POST" action="{{ url_for('update_item_status', item_id=item._id) }}" class="status-form">
+            <select name="status" class="form-select">
+              <option value="active"   {% if item.status == 'active' %}selected{% endif %}>Active</option>
+              <option value="claimed"  {% if item.status == 'claimed' %}selected{% endif %}>Claimed</option>
+              <option value="returned" {% if item.status == 'returned' %}selected{% endif %}>Returned</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top:.5rem">Update Status</button>
+          </form>
+          <div class="owner-action-btns">
+            <a href="{{ url_for('edit_item', item_id=item._id) }}" class="btn btn-outline-primary btn-sm">✏️ Edit</a>
+            <form method="POST" action="{{ url_for('delete_item', item_id=item._id) }}"
+                  onsubmit="return confirm('Delete this item? This cannot be undone.')">
+              <button type="submit" class="btn btn-danger btn-sm">🗑 Delete</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- ===== RIGHT: DETAILS ===== -->
+    <div class="item-detail-info-col">
+      <div class="item-detail-badges">
+        <span class="badge badge-{{ item.type }}">
+          {{ '🔴 Lost' if item.type == 'lost' else '🟢 Found' }}
+        </span>
+        <span class="badge badge-status-{{ item.status }}">
+          {{ item.status | capitalize }}
+        </span>
+        <span class="badge badge-secondary">{{ item.category }}</span>
+      </div>
+
+      <h1 class="item-detail-title">{{ item.title }}</h1>
+      <p class="item-detail-description">{{ item.description }}</p>
+
+      <div class="item-detail-meta-grid">
+        <div class="meta-item">
+          <span class="meta-icon">📍</span>
+          <div>
+            <span class="meta-label">Location</span>
+            <span class="meta-value">{{ item.location }}</span>
+          </div>
+        </div>
+        <div class="meta-item">
+          <span class="meta-icon">📅</span>
+          <div>
+            <span class="meta-label">Date {{ 'Lost' if item.type == 'lost' else 'Found' }}</span>
+            <span class="meta-value">{{ item.date_lost_found.strftime('%B %d, %Y') if item.date_lost_found else 'N/A' }}</span>
+          </div>
+        </div>
+        <div class="meta-item">
+          <span class="meta-icon">👤</span>
+          <div>
+            <span class="meta-label">Posted By</span>
+            <span class="meta-value">{{ owner.name if owner else 'Unknown' }}</span>
+          </div>
+        </div>
+        <div class="meta-item">
+          <span class="meta-icon">🕐</span>
+          <div>
+            <span class="meta-label">Reported On</span>
+            <span class="meta-value">{{ item.created_at.strftime('%B %d, %Y') if item.created_at else 'N/A' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CLAIM SECTION ===== -->
+      {% if current_user %}
+        {% if current_user._id == item.created_by %}
+          <div class="info-box info-box-blue">
+            <strong>📌 This is your item.</strong> Manage it using the controls on the left.
+          </div>
+        {% elif item.status != 'active' %}
+          <div class="info-box info-box-grey">
+            <strong>⚠️ This item is {{ item.status }}.</strong> It is no longer available for claims.
+          </div>
+        {% elif user_claim %}
+          <div class="info-box info-box-{{ 'green' if user_claim.status == 'accepted' else ('red' if user_claim.status == 'rejected' else 'yellow') }}">
+            {% if user_claim.status == 'pending' %}
+              ⏳ <strong>Claim Pending.</strong> The owner is reviewing your request.
+            {% elif user_claim.status == 'accepted' %}
+              ✅ <strong>Claim Accepted!</strong> Contact the owner to arrange pickup.
+            {% else %}
+              ❌ <strong>Claim Rejected.</strong>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="claim-form-card">
+            <h3>Submit a Claim Request</h3>
+            <p class="claim-hint">Describe why this item belongs to you. The owner will review your message.</p>
+            <form method="POST" action="{{ url_for('submit_claim', item_id=item._id) }}">
+              <textarea name="message" class="form-textarea" rows="4"
+                        placeholder="E.g. I lost this wallet last Tuesday. It has my student ID inside…"
+                        required minlength="5"></textarea>
+              <button type="submit" class="btn btn-primary btn-full" style="margin-top:.75rem">
+                📨 Submit Claim Request
+              </button>
+            </form>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="info-box info-box-blue">
+          <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Login</a>
+          to submit a claim request for this item.
+        </div>
+      {% endif %}
+
+      <!-- ===== CLAIMS LIST (owner only) ===== -->
+      {% if current_user and (current_user._id == item.created_by or current_user.role == 'admin') %}
+        {% if claims %}
+          <div class="claims-section">
+            <h3>Claim Requests ({{ claims|length }})</h3>
+            {% for claim in claims %}
+              <div class="claim-card claim-card-{{ claim.status }}">
+                <div class="claim-card-header">
+                  <span class="claim-user">
+                    <span class="mini-avatar">{{ claim.requester.name[0].upper() if claim.requester else '?' }}</span>
+                    {{ claim.requester.name if claim.requester else 'Unknown' }}
+                  </span>
+                  <span class="claim-status-badge claim-status-{{ claim.status }}">{{ claim.status | capitalize }}</span>
+                </div>
+                <p class="claim-message">{{ claim.message }}</p>
+                <p class="claim-date">{{ claim.created_at.strftime('%b %d, %Y') if claim.created_at else '' }}</p>
+
+                {% if claim.status == 'pending' and item.status == 'active' %}
+                  <div class="claim-actions">
+                    <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}" style="display:inline">
+                      <input type="hidden" name="action" value="accept" />
+                      <button type="submit" class="btn btn-success btn-xs">✓ Accept</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}" style="display:inline">
+                      <input type="hidden" name="action" value="reject" />
+                      <button type="submit" class="btn btn-danger btn-xs">✕ Reject</button>
+                    </form>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="no-claims-note">No claim requests yet.</p>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

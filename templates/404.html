@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Page Not Found – FindIt{% endblock %}
+{% block content %}
+<div class="error-page">
+  <div class="error-content">
+    <div class="error-code">404</div>
+    <h1 class="error-title">Page Not Found</h1>
+    <p class="error-message">The page you are looking for doesn't exist or has been moved.</p>
+    <div class="error-actions">
+      <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">Go Home</a>
+      <a href="{{ url_for('browse') }}" class="btn btn-outline-primary btn-lg">Browse Items</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

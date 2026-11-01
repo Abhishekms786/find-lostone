@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Login – FindIt{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">🔍 Find<span class="logo-accent">It</span></div>
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-subtitle">Sign in to your account</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('login') }}" class="auth-form" novalidate>
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <input type="email" id="email" name="email" value="{{ email or '' }}"
+               class="form-input" placeholder="student@college.edu"
+               required autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <div class="input-password-wrap">
+          <input type="password" id="password" name="password"
+                 class="form-input" placeholder="Enter your password"
+                 required autocomplete="current-password" />
+          <button type="button" class="toggle-password" onclick="togglePassword('password')">👁</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg">Sign In</button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Don't have an account? <a href="{{ url_for('register') }}" class="auth-link">Register here</a></p>
+    </div>
+  </div>
+  <div class="auth-illustration">
+    <div class="auth-illustration-content">
+      <div class="auth-illustration-icon">🔍</div>
+      <h2>Find Your Lost Items</h2>
+      <p>Join the campus lost & found community. Report, search, and recover your belongings quickly and easily.</p>
+      <div class="auth-features">
+        <div class="auth-feature-item">✅ Easy reporting system</div>
+        <div class="auth-feature-item">🔍 Smart search & filters</div>
+        <div class="auth-feature-item">📨 Claim request system</div>
+        <div class="auth-feature-item">🤝 Community-driven</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<script>
+function togglePassword(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+</script>

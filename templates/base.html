@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}FindIt – Smart Campus Lost & Found{% endblock %}</title>
+  <meta name="description" content="{% block meta_desc %}FindIt helps college students report, search, and recover lost and found items on campus.{% endblock %}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar" id="navbar">
+  <div class="nav-container">
+    <a href="{{ url_for('index') }}" class="nav-logo">
+      <span class="logo-icon">🔍</span>
+      <span class="logo-text">Find<span class="logo-accent">It</span></span>
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="nav-menu" id="navMenu">
+      <a href="{{ url_for('index') }}"   class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Home</a>
+      <a href="{{ url_for('browse') }}"  class="nav-link {% if request.endpoint == 'browse' %}active{% endif %}">Browse Items</a>
+
+      {% if current_user %}
+        {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">Admin Panel</a>
+        {% else %}
+          <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
+          <a href="{{ url_for('create_item') }}" class="nav-link {% if request.endpoint == 'create_item' %}active{% endif %}">Report Item</a>
+        {% endif %}
+        <div class="nav-user-menu">
+          <button class="nav-user-btn" id="userMenuBtn">
+            <span class="user-avatar">{{ current_user.name[0].upper() }}</span>
+            <span>{{ current_user.name.split()[0] }}</span>
+            <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          </button>
+          <div class="nav-dropdown" id="userDropdown">
+            <span class="dropdown-label">{{ current_user.email }}</span>
+            <a href="{{ url_for('dashboard') }}" class="dropdown-item">My Dashboard</a>
+            <a href="{{ url_for('logout') }}"    class="dropdown-item dropdown-danger">Logout</a>
+          </div>
+        </div>
+      {% else %}
+        <a href="{{ url_for('login') }}"    class="btn btn-outline-primary btn-sm">Login</a>
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Register</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<!-- ===== FLASH MESSAGES ===== -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container" id="flashContainer">
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">
+          <span>{{ message }}</span>
+          <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">🔍 Find<span class="logo-accent">It</span></div>
+        <p class="footer-tagline">Lost Something? Find It Here.</p>
+        <p class="footer-desc">Smart campus lost &amp; found system helping students reconnect with their belongings.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Quick Links</h4>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('browse') }}">Browse Items</a>
+        <a href="{{ url_for('create_item') }}">Report Item</a>
+        {% if not current_user %}
+          <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
+      </div>
+      <div class="footer-links">
+        <h4>Categories</h4>
+        <a href="{{ url_for('browse', category='Mobile Phones') }}">Mobile Phones</a>
+        <a href="{{ url_for('browse', category='Wallets') }}">Wallets</a>
+        <a href="{{ url_for('browse', category='Identity Cards') }}">ID Cards</a>
+        <a href="{{ url_for('browse', category='Electronics') }}">Electronics</a>
+      </div>
+      <div class="footer-contact">
+        <h4>Project Info</h4>
+        <p>College Database Project</p>
+        <p>MongoDB + Flask + Python</p>
+        <p>NoSQL Architecture</p>
+        <p>📧 admin@findit.edu</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2024 FindIt – Smart Campus Lost & Found | Built with Flask &amp; MongoDB</p>
+    </div>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

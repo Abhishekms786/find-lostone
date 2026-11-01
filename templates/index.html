@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}FindIt – Smart Campus Lost & Found System{% endblock %}
+
+{% block content %}
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+  <div class="container hero-content">
+    <div class="hero-badge">🎓 Smart Campus System</div>
+    <h1 class="hero-title">
+      Lost Something?<br />
+      <span class="gradient-text">Find It Here.</span>
+    </h1>
+    <p class="hero-subtitle">
+      The smartest way to report, search, and recover lost &amp; found items on campus.
+      Connect with fellow students and reunite with your belongings.
+    </p>
+
+    <!-- Search Bar -->
+    <form class="hero-search" action="{{ url_for('browse') }}" method="GET">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" name="q" placeholder="Search for lost or found items…" class="search-input" autocomplete="off" />
+        <button type="submit" class="btn btn-primary search-btn">Search</button>
+      </div>
+    </form>
+
+    <div class="hero-actions">
+      <a href="{{ url_for('create_item') }}?type=lost" class="btn btn-danger btn-lg">
+        📋 Report Lost Item
+      </a>
+      <a href="{{ url_for('create_item') }}?type=found" class="btn btn-success btn-lg">
+        🎉 Report Found Item
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== STATS ===== -->
+<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-number" data-target="{{ stats.total }}">{{ stats.total }}</div>
+        <div class="stat-label">Total Reports</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔴</div>
+        <div class="stat-number" data-target="{{ stats.lost }}">{{ stats.lost }}</div>
+        <div class="stat-label">Lost Items</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🟢</div>
+        <div class="stat-number" data-target="{{ stats.found }}">{{ stats.found }}</div>
+        <div class="stat-label">Found Items</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-number" data-target="{{ stats.returned }}">{{ stats.returned }}</div>
+        <div class="stat-label">Items Returned</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CATEGORY FILTERS ===== -->
+<section class="categories-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Browse by Category</h2>
+      <p class="section-subtitle">Find items quickly by selecting a category</p>
+    </div>
+    <div class="category-chips">
+      {% set cat_icons = {
+        'Electronics':'💻','Mobile Phones':'📱','Wallets':'👛','Identity Cards':'🪪',
+        'Books and Notes':'📚','Bags':'🎒','Keys':'🔑','Accessories':'💍',
+        'Clothing':'👕','Other':'📦'
+      } %}
+      {% for cat in categories %}
+        <a href="{{ url_for('browse', category=cat) }}" class="category-chip">
+          <span>{{ cat_icons.get(cat, '📦') }}</span>
+          {{ cat }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===== RECENT LOST ITEMS ===== -->
+<section class="items-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">🔴 Recently Lost Items</h2>
+      <a href="{{ url_for('browse', type='lost') }}" class="btn btn-outline-primary btn-sm">View All</a>
+    </div>
+    {% if recent_lost %}
+      <div class="items-grid">
+        {% for item in recent_lost %}
+          {% include '_item_card.html' %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">🎉</div>
+        <p>No lost items reported recently!</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ===== RECENT FOUND ITEMS ===== -->
+<section class="items-section items-section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">🟢 Recently Found Items</h2>
+      <a href="{{ url_for('browse', type='found') }}" class="btn btn-outline-primary btn-sm">View All</a>
+    </div>
+    {% if recent_found %}
+      <div class="items-grid">
+        {% for item in recent_found %}
+          {% include '_item_card.html' %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>No found items reported yet.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="how-it-works">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">How It Works</h2>
+      <p class="section-subtitle">Simple steps to reunite with your belongings</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <div class="step-icon">📝</div>
+        <h3>Report</h3>
+        <p>Lost or found something? Post a report with details, location, and optional photo.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <div class="step-icon">🔍</div>
+        <h3>Search</h3>
+        <p>Browse through lost and found items. Filter by category, location, and date.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <div class="step-icon">📨</div>
+        <h3>Claim</h3>
+        <p>Send a claim request with a message explaining why the item belongs to you.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">04</div>
+        <div class="step-icon">🤝</div>
+        <h3>Reunite</h3>
+        <p>The owner reviews and accepts the claim. Arrange pickup and mark as returned!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+{% if not current_user %}
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card">
+      <h2>Ready to find your lost item?</h2>
+      <p>Join hundreds of students already using FindIt on campus.</p>
+      <div class="cta-actions">
+        <a href="{{ url_for('register') }}" class="btn btn-white btn-lg">Create Free Account</a>
+        <a href="{{ url_for('browse') }}"   class="btn btn-outline-white btn-lg">Browse Items</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

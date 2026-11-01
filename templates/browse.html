@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Browse Items – FindIt{% endblock %}
+{% block meta_desc %}Browse all lost and found items on campus. Filter by category, type, and location.{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1 class="page-title">Browse Items</h1>
+    <p class="page-subtitle">{{ total }} item{{ 's' if total != 1 }} found</p>
+  </div>
+</div>
+
+<div class="container browse-layout">
+  <!-- ===== SIDEBAR FILTERS ===== -->
+  <aside class="filter-sidebar">
+    <form method="GET" action="{{ url_for('browse') }}" id="filterForm">
+      <div class="filter-section">
+        <h3 class="filter-title">Search</h3>
+        <div class="search-input-wrap">
+          <input type="text" name="q" value="{{ q }}" placeholder="Search items…" class="form-input" />
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-title">Type</h3>
+        <label class="radio-label {% if item_type == '' %}active{% endif %}">
+          <input type="radio" name="type" value="" {% if item_type == '' %}checked{% endif %} onchange="this.form.submit()" /> All Items
+        </label>
+        <label class="radio-label {% if item_type == 'lost' %}active{% endif %}">
+          <input type="radio" name="type" value="lost" {% if item_type == 'lost' %}checked{% endif %} onchange="this.form.submit()" /> 🔴 Lost
+        </label>
+        <label class="radio-label {% if item_type == 'found' %}active{% endif %}">
+          <input type="radio" name="type" value="found" {% if item_type == 'found' %}checked{% endif %} onchange="this.form.submit()" /> 🟢 Found
+        </label>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-title">Category</h3>
+        <select name="category" class="form-select" onchange="this.form.submit()">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-title">Location</h3>
+        <select name="location" class="form-select" onchange="this.form.submit()">
+          <option value="">All Locations</option>
+          {% for loc in locations %}
+            <option value="{{ loc }}" {% if location == loc %}selected{% endif %}>{{ loc }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-section">
+        <h3 class="filter-title">Sort By</h3>
+        <select name="sort" class="form-select" onchange="this.form.submit()">
+          <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+          <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Apply Filters</button>
+      <a href="{{ url_for('browse') }}" class="btn btn-outline-secondary btn-full" style="margin-top:.5rem">Clear Filters</a>
+    </form>
+  </aside>
+
+  <!-- ===== ITEMS GRID ===== -->
+  <main class="browse-main">
+    <div class="browse-toolbar">
+      <span class="result-count">{{ total }} result{{ 's' if total != 1 }}</span>
+      <div class="browse-quick-filters">
+        <a href="{{ url_for('browse', type='', q=q, category=category, location=location) }}"
+           class="quick-filter {% if item_type == '' %}active{% endif %}">All</a>
+        <a href="{{ url_for('browse', type='lost', q=q, category=category, location=location) }}"
+           class="quick-filter quick-filter-lost {% if item_type == 'lost' %}active{% endif %}">🔴 Lost</a>
+        <a href="{{ url_for('browse', type='found', q=q, category=category, location=location) }}"
+           class="quick-filter quick-filter-found {% if item_type == 'found' %}active{% endif %}">🟢 Found</a>
+      </div>
+    </div>
+
+    {% if items %}
+      <div class="items-grid">
+        {% for item in items %}
+          {% include '_item_card.html' %}
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if pages > 1 %}
+        <div class="pagination">
+          {% if page > 1 %}
+            <a href="{{ url_for('browse', page=page-1, q=q, type=item_type, category=category, location=location, sort=sort) }}"
+               class="page-btn">← Prev</a>
+          {% endif %}
+
+          {% for p in range(1, pages+1) %}
+            {% if p == page %}
+              <span class="page-btn page-btn-active">{{ p }}</span>
+            {% elif p == 1 or p == pages or (p >= page-2 and p <= page+2) %}
+              <a href="{{ url_for('browse', page=p, q=q, type=item_type, category=category, location=location, sort=sort) }}"
+                 class="page-btn">{{ p }}</a>
+            {% elif p == page-3 or p == page+3 %}
+              <span class="page-ellipsis">…</span>
+            {% endif %}
+          {% endfor %}
+
+          {% if page < pages %}
+            <a href="{{ url_for('browse', page=page+1, q=q, type=item_type, category=category, location=location, sort=sort) }}"
+               class="page-btn">Next →</a>
+          {% endif %}
+        </div>
+      {% endif %}
+
+    {% else %}
+      <div class="empty-state empty-state-lg">
+        <div class="empty-icon">🔍</div>
+        <h3>No items found</h3>
+        <p>Try adjusting your search or filters.</p>
+        <a href="{{ url_for('browse') }}" class="btn btn-primary">Clear All Filters</a>
+      </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

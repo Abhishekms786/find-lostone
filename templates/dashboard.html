@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard – FindIt{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+  <div class="container">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div class="dashboard-welcome">
+        <div class="dashboard-avatar">{{ current_user.name[0].upper() }}</div>
+        <div>
+          <h1 class="dashboard-title">Welcome back, {{ current_user.name.split()[0] }}!</h1>
+          <p class="dashboard-subtitle">{{ current_user.email }}</p>
+        </div>
+      </div>
+      <a href="{{ url_for('create_item') }}" class="btn btn-primary btn-lg">
+        + Report New Item
+      </a>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="dashboard-stats">
+      <div class="dash-stat-card dash-stat-blue">
+        <div class="dash-stat-icon">📦</div>
+        <div class="dash-stat-value">{{ my_items|length }}</div>
+        <div class="dash-stat-label">My Reports</div>
+      </div>
+      <div class="dash-stat-card dash-stat-red">
+        <div class="dash-stat-icon">🔴</div>
+        <div class="dash-stat-value">{{ my_items|selectattr('type','equalto','lost')|list|length }}</div>
+        <div class="dash-stat-label">Lost Reports</div>
+      </div>
+      <div class="dash-stat-card dash-stat-green">
+        <div class="dash-stat-icon">🟢</div>
+        <div class="dash-stat-value">{{ my_items|selectattr('type','equalto','found')|list|length }}</div>
+        <div class="dash-stat-label">Found Reports</div>
+      </div>
+      <div class="dash-stat-card dash-stat-orange">
+        <div class="dash-stat-icon">📨</div>
+        <div class="dash-stat-value">{{ incoming_claims|length }}</div>
+        <div class="dash-stat-label">Incoming Claims</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="dashboard-tabs" id="dashboardTabs">
+      <button class="dash-tab active" data-tab="my-items">My Items ({{ my_items|length }})</button>
+      <button class="dash-tab" data-tab="incoming-claims">
+        Incoming Claims
+        {% if incoming_claims|selectattr('status','equalto','pending')|list|length > 0 %}
+          <span class="tab-badge">{{ incoming_claims|selectattr('status','equalto','pending')|list|length }}</span>
+        {% endif %}
+      </button>
+      <button class="dash-tab" data-tab="my-claims">My Claims ({{ my_claims|length }})</button>
+    </div>
+
+    <!-- MY ITEMS Tab -->
+    <div class="tab-content active" id="tab-my-items">
+      {% if my_items %}
+        <div class="items-table-wrap">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in my_items %}
+                <tr>
+                  <td>
+                    <a href="{{ url_for('item_details', item_id=item._id) }}" class="table-item-link">
+                      {{ item.title }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="badge badge-{{ item.type }}">{{ item.type | capitalize }}</span>
+                  </td>
+                  <td>{{ item.category }}</td>
+                  <td>
+                    <span class="badge badge-status-{{ item.status }}">{{ item.status | capitalize }}</span>
+                  </td>
+                  <td>{{ item.created_at.strftime('%b %d, %Y') if item.created_at else '' }}</td>
+                  <td>
+                    <div class="table-actions">
+                      <a href="{{ url_for('item_details', item_id=item._id) }}" class="btn btn-outline-primary btn-xs">View</a>
+                      <a href="{{ url_for('edit_item', item_id=item._id) }}" class="btn btn-outline-secondary btn-xs">Edit</a>
+                      <form method="POST" action="{{ url_for('delete_item', item_id=item._id) }}" style="display:inline"
+                            onsubmit="return confirm('Delete this item?')">
+                        <button type="submit" class="btn btn-danger btn-xs">Delete</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>No items reported yet</h3>
+          <p>Start by reporting a lost or found item.</p>
+          <a href="{{ url_for('create_item') }}" class="btn btn-primary">Report First Item</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- INCOMING CLAIMS Tab -->
+    <div class="tab-content" id="tab-incoming-claims">
+      {% if incoming_claims %}
+        <div class="claims-list">
+          {% for claim in incoming_claims %}
+            <div class="claim-list-card claim-card-{{ claim.status }}">
+              <div class="claim-list-left">
+                <div class="mini-avatar">{{ claim.requester.name[0].upper() }}</div>
+                <div>
+                  <strong>{{ claim.requester.name }}</strong>
+                  <span class="claim-for">→ {{ claim.item.title }}</span>
+                  <p class="claim-msg-preview">{{ claim.message[:100] }}{% if claim.message|length > 100 %}…{% endif %}</p>
+                  <small>{{ claim.created_at.strftime('%b %d, %Y') if claim.created_at else '' }}</small>
+                </div>
+              </div>
+              <div class="claim-list-right">
+                <span class="claim-status-badge claim-status-{{ claim.status }}">{{ claim.status | capitalize }}</span>
+                {% if claim.status == 'pending' %}
+                  <div class="claim-response-btns">
+                    <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}" style="display:inline">
+                      <input type="hidden" name="action" value="accept" />
+                      <button type="submit" class="btn btn-success btn-sm">✓ Accept</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}" style="display:inline">
+                      <input type="hidden" name="action" value="reject" />
+                      <button type="submit" class="btn btn-danger btn-sm">✕ Reject</button>
+                    </form>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <h3>No incoming claims</h3>
+          <p>When someone claims one of your items, it will appear here.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- MY CLAIMS Tab -->
+    <div class="tab-content" id="tab-my-claims">
+      {% if my_claims %}
+        <div class="claims-list">
+          {% for claim in my_claims %}
+            <div class="claim-list-card claim-card-{{ claim.status }}">
+              <div class="claim-list-left">
+                <div>
+                  <strong>Claimed: </strong>
+                  <a href="{{ url_for('item_details', item_id=claim.item._id) }}" class="table-item-link">{{ claim.item.title }}</a>
+                  <p class="claim-msg-preview">Your message: {{ claim.message[:100] }}{% if claim.message|length > 100 %}…{% endif %}</p>
+                  <small>{{ claim.created_at.strftime('%b %d, %Y') if claim.created_at else '' }}</small>
+                </div>
+              </div>
+              <div class="claim-list-right">
+                <span class="claim-status-badge claim-status-{{ claim.status }}">{{ claim.status | capitalize }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>No claims submitted</h3>
+          <p>Browse items and submit a claim if you recognize your lost item.</p>
+          <a href="{{ url_for('browse') }}" class="btn btn-primary">Browse Items</a>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

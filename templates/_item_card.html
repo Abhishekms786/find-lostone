@@ -1,0 +1,36 @@
+<div class="item-card">
+  <a href="{{ url_for('item_details', item_id=item._id) }}" class="item-card-link">
+    <div class="item-card-image">
+      {% if item.image_url %}
+        <img src="{{ item.image_url }}" alt="{{ item.title }}" onerror="this.parentElement.classList.add('no-image')" loading="lazy"/>
+      {% else %}
+        <div class="item-placeholder-icon">
+          {% set cat_icons = {
+            'Electronics':'💻','Mobile Phones':'📱','Wallets':'👛','Identity Cards':'🪪',
+            'Books and Notes':'📚','Bags':'🎒','Keys':'🔑','Accessories':'💍',
+            'Clothing':'👕','Other':'📦'
+          } %}
+          {{ cat_icons.get(item.category, '📦') }}
+        </div>
+      {% endif %}
+      <span class="item-badge item-badge-{{ item.type }}">
+        {{ '🔴 Lost' if item.type == 'lost' else '🟢 Found' }}
+      </span>
+      {% if item.status != 'active' %}
+        <span class="item-status-overlay">{{ item.status | capitalize }}</span>
+      {% endif %}
+    </div>
+    <div class="item-card-body">
+      <div class="item-meta">
+        <span class="item-category">{{ item.category }}</span>
+        <span class="item-date">{{ item.date_lost_found.strftime('%b %d') if item.date_lost_found else '' }}</span>
+      </div>
+      <h3 class="item-title">{{ item.title }}</h3>
+      <p class="item-description">{{ item.description[:80] }}{% if item.description|length > 80 %}…{% endif %}</p>
+      <div class="item-location">
+        <span>📍</span>
+        <span>{{ item.location }}</span>
+      </div>
+    </div>
+  </a>
+</div>

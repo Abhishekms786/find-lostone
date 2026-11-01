@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard – FindIt{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="container">
+    <div class="admin-header">
+      <h1>🛡 Admin Dashboard</h1>
+      <p>FindIt Campus Lost & Found – Admin Control Panel</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="admin-stats-grid">
+      <div class="admin-stat-card">
+        <div class="admin-stat-icon">👥</div>
+        <div class="admin-stat-value">{{ stats.total_users }}</div>
+        <div class="admin-stat-label">Students</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-icon">📦</div>
+        <div class="admin-stat-value">{{ stats.total_items }}</div>
+        <div class="admin-stat-label">Total Items</div>
+      </div>
+      <div class="admin-stat-card admin-stat-red">
+        <div class="admin-stat-icon">🔴</div>
+        <div class="admin-stat-value">{{ stats.total_lost }}</div>
+        <div class="admin-stat-label">Lost Items</div>
+      </div>
+      <div class="admin-stat-card admin-stat-green">
+        <div class="admin-stat-icon">🟢</div>
+        <div class="admin-stat-value">{{ stats.total_found }}</div>
+        <div class="admin-stat-label">Found Items</div>
+      </div>
+      <div class="admin-stat-card admin-stat-blue">
+        <div class="admin-stat-icon">✅</div>
+        <div class="admin-stat-value">{{ stats.active_items }}</div>
+        <div class="admin-stat-label">Active</div>
+      </div>
+      <div class="admin-stat-card admin-stat-orange">
+        <div class="admin-stat-icon">🔒</div>
+        <div class="admin-stat-value">{{ stats.claimed_items }}</div>
+        <div class="admin-stat-label">Claimed</div>
+      </div>
+      <div class="admin-stat-card admin-stat-purple">
+        <div class="admin-stat-icon">🤝</div>
+        <div class="admin-stat-value">{{ stats.returned_items }}</div>
+        <div class="admin-stat-label">Returned</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-icon">📨</div>
+        <div class="admin-stat-value">{{ stats.total_claims }}</div>
+        <div class="admin-stat-label">Claims</div>
+      </div>
+    </div>
+
+    <!-- Admin Tabs -->
+    <div class="dashboard-tabs" id="adminTabs">
+      <button class="dash-tab active" data-tab="admin-items">All Items</button>
+      <button class="dash-tab" data-tab="admin-users">Registered Students</button>
+    </div>
+
+    <!-- ALL ITEMS Tab -->
+    <div class="tab-content active" id="tab-admin-items">
+      <form method="GET" action="{{ url_for('admin_dashboard') }}" class="admin-filter-bar">
+        <input type="text" name="q" value="{{ q }}" class="form-input" placeholder="Search items…" style="flex:1" />
+        <select name="type" class="form-select">
+          <option value="">All Types</option>
+          <option value="lost"  {% if item_type == 'lost' %}selected{% endif %}>Lost</option>
+          <option value="found" {% if item_type == 'found' %}selected{% endif %}>Found</option>
+        </select>
+        <select name="status" class="form-select">
+          <option value="">All Statuses</option>
+          <option value="active"   {% if status == 'active' %}selected{% endif %}>Active</option>
+          <option value="claimed"  {% if status == 'claimed' %}selected{% endif %}>Claimed</option>
+          <option value="returned" {% if status == 'returned' %}selected{% endif %}>Returned</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Clear</a>
+      </form>
+
+      {% if items %}
+        <div class="items-table-wrap">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Posted By</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+                <tr>
+                  <td><a href="{{ url_for('item_details', item_id=item._id) }}" class="table-item-link">{{ item.title }}</a></td>
+                  <td><span class="badge badge-{{ item.type }}">{{ item.type | capitalize }}</span></td>
+                  <td>{{ item.category }}</td>
+                  <td>{{ item.owner.name if item.owner else 'Unknown' }}</td>
+                  <td><span class="badge badge-status-{{ item.status }}">{{ item.status | capitalize }}</span></td>
+                  <td>{{ item.created_at.strftime('%b %d, %Y') if item.created_at else '' }}</td>
+                  <td>
+                    <div class="table-actions">
+                      <a href="{{ url_for('edit_item', item_id=item._id) }}" class="btn btn-outline-primary btn-xs">Edit</a>
+                      <form method="POST" action="{{ url_for('admin_delete_item', item_id=item._id) }}" style="display:inline"
+                            onsubmit="return confirm('Delete this item permanently?')">
+                        <button type="submit" class="btn btn-danger btn-xs">Delete</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if pages > 1 %}
+          <div class="pagination" style="margin-top:1.5rem">
+            {% if page > 1 %}
+              <a href="{{ url_for('admin_dashboard', page=page-1, q=q, type=item_type, status=status) }}" class="page-btn">← Prev</a>
+            {% endif %}
+            {% for p in range(1, pages+1) %}
+              {% if p == page %}
+                <span class="page-btn page-btn-active">{{ p }}</span>
+              {% elif p == 1 or p == pages or (p >= page-2 and p <= page+2) %}
+                <a href="{{ url_for('admin_dashboard', page=p, q=q, type=item_type, status=status) }}" class="page-btn">{{ p }}</a>
+              {% endif %}
+            {% endfor %}
+            {% if page < pages %}
+              <a href="{{ url_for('admin_dashboard', page=page+1, q=q, type=item_type, status=status) }}" class="page-btn">Next →</a>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="empty-state"><div class="empty-icon">📭</div><p>No items found.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- USERS Tab -->
+    <div class="tab-content" id="tab-admin-users">
+      {% if users %}
+        <div class="items-table-wrap">
+          <table class="items-table">
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+                <tr>
+                  <td>
+                    <div class="table-user-cell">
+                      <div class="mini-avatar">{{ user.name[0].upper() }}</div>
+                      {{ user.name }}
+                    </div>
+                  </td>
+                  <td>{{ user.email }}</td>
+                  <td><span class="badge badge-secondary">{{ user.role | capitalize }}</span></td>
+                  <td>{{ user.created_at.strftime('%b %d, %Y') if user.created_at else '' }}</td>
+                  <td>
+                    <form method="POST" action="{{ url_for('admin_delete_user', user_id=user._id) }}" style="display:inline"
+                          onsubmit="return confirm('Delete user and all their items?')">
+                      <button type="submit" class="btn btn-danger btn-xs">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state"><div class="empty-icon">👥</div><p>No students registered yet.</p></div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

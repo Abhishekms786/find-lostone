@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Edit Item – FindIt{% endblock %}
+
+{% block content %}
+<div class="container form-page">
+  <div class="form-page-header">
+    <h1>✏️ Edit Item</h1>
+    <p>Update the details for: <strong>{{ item.title }}</strong></p>
+  </div>
+
+  <div class="form-card">
+    <form method="POST" action="{{ url_for('edit_item', item_id=item._id) }}" class="item-form" novalidate>
+
+      <div class="form-group">
+        <label class="form-label">Item Type *</label>
+        <div class="type-toggle">
+          {% set current_type = form_data.get('type', item.type) %}
+          <label class="type-option {% if current_type == 'lost' %}active{% endif %}">
+            <input type="radio" name="type" value="lost" {% if current_type == 'lost' %}checked{% endif %}
+                   onchange="this.closest('.type-toggle').querySelectorAll('.type-option').forEach(o=>o.classList.remove('active'));this.parentElement.classList.add('active')" />
+            🔴 Lost Item
+          </label>
+          <label class="type-option {% if current_type == 'found' %}active{% endif %}">
+            <input type="radio" name="type" value="found" {% if current_type == 'found' %}checked{% endif %}
+                   onchange="this.closest('.type-toggle').querySelectorAll('.type-option').forEach(o=>o.classList.remove('active'));this.parentElement.classList.add('active')" />
+            🟢 Found Item
+          </label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="title" class="form-label">Item Title *</label>
+          <input type="text" id="title" name="title"
+                 value="{{ form_data.get('title', item.title) }}"
+                 class="form-input" required minlength="3" maxlength="100" />
+        </div>
+        <div class="form-group">
+          <label for="category" class="form-label">Category *</label>
+          <select id="category" name="category" class="form-select" required>
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if form_data.get('category', item.category) == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Description *</label>
+        <textarea id="description" name="description" class="form-textarea" rows="4"
+                  required minlength="10" maxlength="1000">{{ form_data.get('description', item.description) }}</textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="location" class="form-label">Location *</label>
+          <select id="location" name="location" class="form-select" required>
+            {% for loc in locations %}
+              <option value="{{ loc }}" {% if form_data.get('location', item.location) == loc %}selected{% endif %}>{{ loc }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="date_lost_found" class="form-label">Date Lost / Found</label>
+          <input type="date" id="date_lost_found" name="date_lost_found"
+                 value="{{ form_data.get('date_lost_found', item.date_lost_found.strftime('%Y-%m-%d') if item.date_lost_found else '') }}"
+                 class="form-input" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="image_url" class="form-label">Image URL (Optional)</label>
+        <input type="url" id="image_url" name="image_url"
+               value="{{ form_data.get('image_url', item.image_url or '') }}"
+               class="form-input" placeholder="https://example.com/photo.jpg" />
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ url_for('item_details', item_id=item._id) }}" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary btn-lg">💾 Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
