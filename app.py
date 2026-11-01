@@ -34,6 +34,8 @@ try:
 except ImportError:
     CA_FILE = None
 
+import time
+
 # ---------------------------------------------
 # MongoDB Connection
 # ---------------------------------------------
@@ -43,37 +45,47 @@ DB_NAME   = os.environ.get('DB_NAME', 'findit_db')
 client = None
 db     = None
 db_error_message = None
+_last_attempt_time = 0.0
+_RETRY_INTERVAL = 10.0  # seconds between reconnect attempts on failure
 
 def get_db():
-    """Return the database handle, connecting lazily."""
-    global client, db, db_error_message
-    if db is None:
-        try:
-            mongo_kwargs = {
-                'serverSelectionTimeoutMS': 7000,
-                'connectTimeoutMS': 7000,
-                'socketTimeoutMS': 7000,
-            }
-            if CA_FILE and ('mongodb+srv://' in MONGO_URI or 'tls=true' in MONGO_URI.lower() or 'ssl=true' in MONGO_URI.lower()):
-                mongo_kwargs['tlsCAFile'] = CA_FILE
+    """Return the database handle, connecting lazily with cooldown on failure."""
+    global client, db, db_error_message, _last_attempt_time
+    if db is not None:
+        return db
 
-            client = MongoClient(MONGO_URI, **mongo_kwargs)
-            # Verify server responsiveness (works for local MongoDB and Atlas)
-            client.admin.command('ping')
-            db = client[DB_NAME]
-            _create_indexes(db)
-            _seed_admin(db)
-            db_error_message = None
-            # Mask any passwords in MONGO_URI for secure logging
-            safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', MONGO_URI)
-            is_cloud = MONGO_URI.startswith('mongodb+srv://')
-            db_type = 'MongoDB Atlas Cloud' if is_cloud else 'Local MongoDB'
-            print(f"[FindIt] Connected to {db_type} ({safe_uri}) -> database: {DB_NAME}")
-        except Exception as exc:
-            db_error_message = str(exc)
-            safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', MONGO_URI)
-            print(f"[FindIt] MongoDB connection failed for {safe_uri}: {exc}")
-            db = None
+    now = time.time()
+    # If connection previously failed, wait before retrying to prevent blocking Gunicorn workers
+    if (now - _last_attempt_time) < _RETRY_INTERVAL:
+        return None
+
+    _last_attempt_time = now
+    try:
+        mongo_kwargs = {
+            'serverSelectionTimeoutMS': 3500,
+            'connectTimeoutMS': 3500,
+            'socketTimeoutMS': 3500,
+        }
+        if CA_FILE and ('mongodb+srv://' in MONGO_URI or 'tls=true' in MONGO_URI.lower() or 'ssl=true' in MONGO_URI.lower()):
+            mongo_kwargs['tlsCAFile'] = CA_FILE
+
+        client = MongoClient(MONGO_URI, **mongo_kwargs)
+        # Verify server responsiveness (works for local MongoDB and Atlas)
+        client.admin.command('ping')
+        db = client[DB_NAME]
+        _create_indexes(db)
+        _seed_admin(db)
+        db_error_message = None
+        # Mask any passwords in MONGO_URI for secure logging
+        safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', MONGO_URI)
+        is_cloud = MONGO_URI.startswith('mongodb+srv://')
+        db_type = 'MongoDB Atlas Cloud' if is_cloud else 'Local MongoDB'
+        print(f"[FindIt] Connected to {db_type} ({safe_uri}) -> database: {DB_NAME}")
+    except Exception as exc:
+        db_error_message = str(exc)
+        safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', MONGO_URI)
+        print(f"[FindIt] MongoDB connection failed for {safe_uri}: {exc}")
+        db = None
     return db
 
 
