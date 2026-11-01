@@ -29,6 +29,22 @@
       <button type="submit" class="btn btn-primary btn-full btn-lg">Sign In</button>
     </form>
 
+    <!-- Quick 1-Click Access (Login Optional) -->
+    <div style="margin: 1.25rem 0; padding: 1rem; background: rgba(59, 130, 246, 0.08); border-radius: 10px; border: 1px dashed rgba(59, 130, 246, 0.35); text-align: center;">
+      <p style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.6rem; color: #2563eb;">⚡ 1-Click Instant Access (Login Optional)</p>
+      <div style="display: flex; gap: 0.4rem; flex-direction: column;">
+        <a href="{{ url_for('login', demo='student') }}" class="btn btn-outline-primary btn-sm" style="text-decoration:none; justify-content:center;">
+          🎓 Continue as VVCE Student (Prajwal Gowda)
+        </a>
+        <a href="{{ url_for('login', demo='admin') }}" class="btn btn-outline-secondary btn-sm" style="text-decoration:none; justify-content:center;">
+          🛡️ Continue as Campus Admin (Administrator)
+        </a>
+        <a href="{{ url_for('browse') }}" class="btn btn-success btn-sm" style="text-decoration:none; justify-content:center; margin-top: 0.2rem;">
+          🔍 View All 23 Karnataka Items Directly
+        </a>
+      </div>
+    </div>
+
     <div class="auth-footer">
       <p>Don't have an account? <a href="{{ url_for('register') }}" class="auth-link">Register here</a></p>
     </div>
