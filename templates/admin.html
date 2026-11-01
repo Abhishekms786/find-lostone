@@ -55,8 +55,9 @@
 
     <!-- Admin Tabs -->
     <div class="dashboard-tabs" id="adminTabs">
-      <button class="dash-tab active" data-tab="admin-items">All Items</button>
-      <button class="dash-tab" data-tab="admin-users">Registered Students</button>
+      <button class="dash-tab active" data-tab="admin-items">📦 All Items</button>
+      <button class="dash-tab" data-tab="admin-claims">📨 Claims & Handovers ({{ claims|length }})</button>
+      <button class="dash-tab" data-tab="admin-users">👥 Registered Students</button>
     </div>
 
     <!-- ALL ITEMS Tab -->
@@ -136,6 +137,96 @@
         {% endif %}
       {% else %}
         <div class="empty-state"><div class="empty-icon">📭</div><p>No items found.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- CLAIMS & HANDOVERS Tab -->
+    <div class="tab-content" id="tab-admin-claims">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; margin-bottom:1.5rem">
+        <p style="margin:0; font-size:0.9rem; color:#475569">
+          <strong>🛡️ Campus Handover Workflow:</strong> When students submit claim requests for lost or found items, they are routed here to the Campus Admin. Review the proof of ownership below and click <strong>"🤝 Handover to Owner"</strong> to verify and mark the item as safely returned to its rightful owner.
+        </p>
+      </div>
+
+      {% if claims %}
+        <div class="items-table-wrap">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Type</th>
+                <th>Reported By (Reporter)</th>
+                <th>Claimant &amp; Proof</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Admin Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for claim in claims %}
+                <tr>
+                  <td>
+                    {% if claim.item %}
+                      <a href="{{ url_for('item_details', item_id=claim.item._id) }}" class="table-item-link">
+                        {{ claim.item.title }}
+                      </a>
+                    {% else %}
+                      <span>Item #{{ claim.item_id }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if claim.item %}
+                      <span class="badge badge-{{ claim.item.type }}">{{ claim.item.type | capitalize }}</span>
+                    {% else %}
+                      <span class="badge badge-secondary">Unknown</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div style="font-weight:600">{{ claim.owner.name if claim.owner else (claim.item.owner.name if claim.item and claim.item.owner else 'Campus Reporter') }}</div>
+                    <div style="font-size:0.8rem; color:#64748b">{{ claim.owner.email if claim.owner else '' }}</div>
+                  </td>
+                  <td>
+                    <div style="font-weight:600; color:#1e40af">{{ claim.requester.name if claim.requester else 'Student Claimant' }}</div>
+                    <div style="font-size:0.85rem; color:#334155; margin-top:2px">"{{ claim.message }}"</div>
+                  </td>
+                  <td>
+                    {% if claim.status == 'accepted' %}
+                      <span class="badge badge-status-returned">✅ Handed Over</span>
+                    {% elif claim.status == 'rejected' %}
+                      <span class="badge badge-danger">Rejected</span>
+                    {% else %}
+                      <span class="badge badge-status-claimed">⏳ Pending Admin</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ claim.created_at.strftime('%b %d, %Y') if claim.created_at else '' }}</td>
+                  <td>
+                    {% if claim.status == 'pending' %}
+                      <div class="table-actions">
+                        <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}" style="display:inline">
+                          <input type="hidden" name="action" value="accept" />
+                          <button type="submit" class="btn btn-success btn-xs">🤝 Handover to Owner</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('respond_claim', claim_id=claim._id) }}" style="display:inline">
+                          <input type="hidden" name="action" value="reject" />
+                          <button type="submit" class="btn btn-outline-danger btn-xs">✕ Reject</button>
+                        </form>
+                      </div>
+                    {% elif claim.status == 'accepted' %}
+                      <span style="font-size:0.8rem; color:#16a34a; font-weight:600">✓ Returned to Owner</span>
+                    {% else %}
+                      <span style="font-size:0.8rem; color:#64748b">Claim Closed</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📨</div>
+          <p>No student claim requests pending.</p>
+        </div>
       {% endif %}
     </div>
 

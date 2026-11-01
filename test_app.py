@@ -177,7 +177,7 @@ def test_9_claim_acceptance_and_rejection(client):
     assert updated_claim['status'] == 'accepted'
 
     updated_item = db.items.find_one({'_id': bob_item['_id']})
-    assert updated_item['status'] == 'claimed'
+    assert updated_item['status'] in ('returned', 'claimed')
 
 # 10. Item status update
 def test_10_item_status_update(client):

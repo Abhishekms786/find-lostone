@@ -102,34 +102,39 @@
 
       <!-- ===== CLAIM SECTION ===== -->
       {% if current_user %}
-        {% if current_user._id|string == item.created_by|string %}
-          <div class="info-box info-box-blue">
-            <strong>📌 This is your item.</strong> Manage it using the controls on the left.
-          </div>
-        {% elif item.status != 'active' %}
-          <div class="info-box info-box-grey">
-            <strong>⚠️ This item is {{ item.status }}.</strong> It is no longer available for claims.
+        {% if item.status == 'returned' %}
+          <div class="info-box info-box-green" style="background:#ecfdf5; border-color:#86efac; color:#166534">
+            <strong>🎉 Item Handed Over!</strong> This item has been verified by the Campus Admin and returned to its original owner.
           </div>
         {% elif user_claim %}
           <div class="info-box info-box-{{ 'green' if user_claim.status == 'accepted' else ('red' if user_claim.status == 'rejected' else 'yellow') }}">
             {% if user_claim.status == 'pending' %}
-              ⏳ <strong>Claim Pending.</strong> The owner is reviewing your request.
+              ⏳ <strong>Claim Sent to Admin.</strong> Your claim is under review by Campus Admin. They will coordinate verification and handover to the original owner.
             {% elif user_claim.status == 'accepted' %}
-              ✅ <strong>Claim Accepted!</strong> Contact the owner to arrange pickup.
+              ✅ <strong>Claim Approved & Handed Over!</strong> Verified by Campus Admin and returned to the original owner.
             {% else %}
-              ❌ <strong>Claim Rejected.</strong>
+              ❌ <strong>Claim Rejected.</strong> The provided details did not match ownership records.
             {% endif %}
           </div>
         {% else %}
           <div class="claim-form-card">
-            <h3>Submit a Claim Request</h3>
-            <p class="claim-hint">Describe why this item belongs to you. The owner will review your message.</p>
+            <h3>📨 Submit Claim / Recovery Request</h3>
+            <p class="claim-hint" style="color:#475569">
+              <strong>Campus Admin Handover:</strong> When you send a request, it goes directly to the <strong>Campus Admin</strong>. The Admin verifies proof of ownership and arranges the safe handover to the original owner.
+            </p>
             <form method="POST" action="{{ url_for('submit_claim', item_id=item._id) }}">
-              <textarea name="message" class="form-textarea" rows="4"
-                        placeholder="E.g. I lost this wallet last Tuesday. It has my student ID inside…"
-                        required minlength="5"></textarea>
-              <button type="submit" class="btn btn-primary btn-full" style="margin-top:.75rem">
-                📨 Submit Claim Request
+              <div style="margin-bottom:0.75rem">
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem">Your Contact Info (Phone / Student Email)</label>
+                <input type="text" name="contact" class="form-input" placeholder="e.g. 9876543210 or student@vvce.ac.in" style="width:100%" />
+              </div>
+              <div style="margin-bottom:0.75rem">
+                <label style="display:block; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem">Proof of Ownership / Message</label>
+                <textarea name="message" class="form-textarea" rows="3"
+                          placeholder="Describe specific identification marks, serial numbers, exact date/time, or why this item belongs to you…"
+                          required minlength="3"></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full">
+                📨 Send Request to Admin for Handover
               </button>
             </form>
           </div>

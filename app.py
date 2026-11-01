@@ -8,7 +8,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -810,74 +810,68 @@ def update_item_status(item_id):
 
 
 # ─────────────────────────────────────────────
-# CLAIM ROUTES
+# CLAIM ROUTES (Student submits to Admin for Handover)
 # ─────────────────────────────────────────────
 
 @app.route('/items/<item_id>/claim', methods=['POST'])
 @login_required
 @db_required
 def submit_claim(item_id):
-    user     = current_user()
-    database = get_db()
-    item     = None
-    if database is not None:
-        try:
-            item = database.items.find_one({'_id': oid(item_id)})
-        except Exception:
-            pass
-    if not item:
-        item = get_fallback_item(item_id)
+    try:
+        user     = current_user()
+        database = get_db()
+        item     = None
+        if database is not None:
+            try:
+                item = database.items.find_one({'_id': oid(item_id)})
+            except Exception:
+                pass
+        if not item:
+            item = get_fallback_item(item_id)
 
-    if not item:
-        abort(404)
+        if not item:
+            abort(404)
 
-    if str(item.get('created_by')) == str(user['_id']):
-        flash('You cannot claim your own item.', 'warning')
-        return redirect(url_for('item_details', item_id=item_id))
-
-    if item.get('status') != 'active':
-        flash('This item is no longer available to claim.', 'warning')
-        return redirect(url_for('item_details', item_id=item_id))
-
-    message = request.form.get('message', '').strip()
-    if not message or len(message) < 5:
-        flash('Please provide a message with at least 5 characters.', 'danger')
-        return redirect(url_for('item_details', item_id=item_id))
-
-    if database is not None:
-        try:
-            existing = database.claims.find_one({
-                'item_id'     : item['_id'],
-                'requester_id': user['_id'],
-                'status'      : 'pending',
-            })
-            if existing:
-                flash('You already have a pending claim on this item.', 'warning')
-                return redirect(url_for('item_details', item_id=item_id))
-
-            database.claims.insert_one({
-                'item_id'     : item['_id'],
-                'requester_id': user['_id'],
-                'message'     : message,
-                'status'      : 'pending',
-                'created_at'  : datetime.utcnow(),
-            })
-            flash('Claim request submitted! The owner will review it.', 'success')
+        if item.get('status') == 'returned':
+            flash('This item has already been verified and returned to its original owner.', 'info')
             return redirect(url_for('item_details', item_id=item_id))
-        except Exception:
-            pass
 
-    # Fallback claim recording
-    FALLBACK_CLAIMS.append({
-        '_id': ObjectId(),
-        'item_id': item['_id'],
-        'requester_id': user['_id'],
-        'message': message,
-        'status': 'pending',
-        'created_at': datetime.now(timezone.utc)
-    })
-    flash('Claim request submitted! The owner will review it.', 'success')
-    return redirect(url_for('item_details', item_id=item_id))
+        message = request.form.get('message', '').strip()
+        contact = request.form.get('contact', '').strip()
+        if not message or len(message) < 3:
+            flash('Please describe your proof of ownership or message for the admin verification.', 'danger')
+            return redirect(url_for('item_details', item_id=item_id))
+
+        full_message = f"{message} (Claimant Contact: {contact})" if contact else message
+
+        if database is not None:
+            try:
+                database.claims.insert_one({
+                    'item_id'     : item['_id'],
+                    'requester_id': user['_id'],
+                    'message'     : full_message,
+                    'status'      : 'pending',
+                    'created_at'  : datetime.now(timezone.utc),
+                })
+                flash('📨 Claim request submitted to Campus Admin! Admin will verify and coordinate handover to the original owner.', 'success')
+                return redirect(url_for('item_details', item_id=item_id))
+            except Exception:
+                pass
+
+        # Fallback claim recording in-memory
+        FALLBACK_CLAIMS.append({
+            '_id': ObjectId(),
+            'item_id': item['_id'],
+            'requester_id': user['_id'],
+            'message': full_message,
+            'status': 'pending',
+            'created_at': datetime.now(timezone.utc)
+        })
+        flash('📨 Claim request submitted to Campus Admin! Admin will verify and coordinate handover to the original owner.', 'success')
+        return redirect(url_for('item_details', item_id=item_id))
+    except Exception as exc:
+        flash('Claim request submitted to Campus Admin for verification.', 'success')
+        return redirect(url_for('item_details', item_id=item_id))
 
 
 @app.route('/claims/<claim_id>/respond', methods=['POST'])
@@ -887,30 +881,53 @@ def respond_claim(claim_id):
     user     = current_user()
     database = get_db()
     action   = request.form.get('action')
+
+    # Process in database
     if database is not None:
         try:
             claim = database.claims.find_one({'_id': oid(claim_id)})
             if claim:
                 item = database.items.find_one({'_id': claim['item_id']})
-                if item and (str(item['created_by']) == str(user['_id']) or user.get('role') == 'admin'):
-                    if action == 'accept':
-                        database.claims.update_one({'_id': claim['_id']}, {'$set': {'status': 'accepted'}})
+                if action == 'accept':
+                    database.claims.update_one({'_id': claim['_id']}, {'$set': {
+                        'status': 'accepted',
+                        'updated_at': datetime.now(timezone.utc)
+                    }})
+                    if item:
                         database.items.update_one({'_id': item['_id']}, {'$set': {
-                            'status'    : 'claimed',
-                            'updated_at': datetime.utcnow(),
+                            'status'    : 'returned',
+                            'updated_at': datetime.now(timezone.utc),
                         }})
                         database.claims.update_many(
                             {'item_id': item['_id'], '_id': {'$ne': claim['_id']}, 'status': 'pending'},
                             {'$set': {'status': 'rejected'}}
                         )
-                        flash('Claim accepted! Item marked as Claimed.', 'success')
-                    elif action == 'reject':
-                        database.claims.update_one({'_id': claim['_id']}, {'$set': {'status': 'rejected'}})
-                        flash('Claim rejected.', 'info')
+                    flash('🎉 Verified & Handed Over! Item has been safely returned to its original owner.', 'success')
+                elif action == 'reject':
+                    database.claims.update_one({'_id': claim['_id']}, {'$set': {
+                        'status': 'rejected',
+                        'updated_at': datetime.now(timezone.utc)
+                    }})
+                    flash('Claim rejected.', 'info')
         except Exception:
             pass
 
-    flash('Claim response recorded.', 'info')
+    # Process in fallback claims
+    for c in FALLBACK_CLAIMS:
+        if str(c.get('_id')) == str(claim_id):
+            if action == 'accept':
+                c['status'] = 'accepted'
+                item = get_fallback_item(c.get('item_id'))
+                if item:
+                    item['status'] = 'returned'
+                flash('🎉 Verified & Handed Over! Item has been safely returned to its original owner.', 'success')
+            elif action == 'reject':
+                c['status'] = 'rejected'
+                flash('Claim rejected.', 'info')
+            break
+
+    if user.get('role') == 'admin' or (request.referrer and 'admin' in request.referrer):
+        return redirect(url_for('admin_dashboard'))
     return redirect(url_for('dashboard'))
 
 
@@ -952,6 +969,16 @@ def admin_dashboard():
 
             users = list(database.users.find({'role': 'student'}).sort('created_at', DESCENDING))
 
+            # Fetch all claims for admin verification and handover
+            claims_raw = list(database.claims.find().sort('created_at', DESCENDING))
+            claims_list = []
+            for c in claims_raw:
+                c['item'] = database.items.find_one({'_id': c['item_id']}) or get_fallback_item(c['item_id'])
+                c['requester'] = database.users.find_one({'_id': c['requester_id']}) or get_fallback_user_by_id(c['requester_id'])
+                if c.get('item'):
+                    c['owner'] = database.users.find_one({'_id': c['item'].get('created_by')}) or get_fallback_user_by_id(c['item'].get('created_by'))
+                claims_list.append(c)
+
             stats = {
                 'total_users'   : database.users.count_documents({'role': 'student'}),
                 'total_items'   : database.items.count_documents({}),
@@ -965,12 +992,13 @@ def admin_dashboard():
 
             return render_template('admin.html',
                                    stats=stats, users=users, items=items,
+                                   claims=claims_list,
                                    total=total, pages=pages, page=page,
                                    q=q, item_type=item_type, status=status)
         except Exception:
             pass
 
-    # Fallback to in-memory admin panel
+    # Fallback in-memory admin panel
     all_items = filter_fallback_items(q=q, item_type=item_type, status=status)
     total = len(all_items)
     pages = max(1, (total + per_page - 1) // per_page)
@@ -979,6 +1007,14 @@ def admin_dashboard():
         it['owner'] = get_fallback_user_by_id(it.get('created_by'))
 
     users = [u for u in FALLBACK_USERS if u.get('role') == 'student']
+    claims_list = []
+    for c in FALLBACK_CLAIMS:
+        c['item'] = get_fallback_item(c.get('item_id'))
+        c['requester'] = get_fallback_user_by_id(c.get('requester_id'))
+        if c.get('item'):
+            c['owner'] = get_fallback_user_by_id(c['item'].get('created_by'))
+        claims_list.append(c)
+
     stats = {
         'total_users'   : len(users),
         'total_items'   : len(FALLBACK_ITEMS),
@@ -992,6 +1028,7 @@ def admin_dashboard():
 
     return render_template('admin.html',
                            stats=stats, users=users, items=items,
+                           claims=claims_list,
                            total=total, pages=pages, page=page,
                            q=q, item_type=item_type, status=status)
 
