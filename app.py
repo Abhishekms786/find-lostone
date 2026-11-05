@@ -30,6 +30,14 @@ from fallback_data import (
 # ---------------------------------------------
 load_dotenv()
 
+# Configure dnspython nameservers to Google & Cloudflare DNS to avoid mobile carrier DNS timeouts
+try:
+    import dns.resolver
+    dns.resolver.default_resolver = dns.resolver.Resolver(configure=False)
+    dns.resolver.default_resolver.nameservers = ['8.8.8.8', '1.1.1.1', '8.8.4.4']
+except Exception:
+    pass
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.permanent_session_lifetime = timedelta(days=7)
@@ -81,6 +89,7 @@ def get_db():
         db = client[DB_NAME]
         _create_indexes(db)
         _seed_admin(db)
+        _seed_initial_data(db)
         db_error_message = None
         # Mask any passwords in MONGO_URI for secure logging
         safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:****@', MONGO_URI)
@@ -118,6 +127,32 @@ def _seed_admin(database):
             'created_at'   : datetime.utcnow(),
         })
         print(f"[FindIt] Admin account created -> {admin_email}")
+
+
+def _seed_initial_data(database):
+    """Seed initial VVCE Mysuru items and demo students into MongoDB if collections are empty."""
+    try:
+        # Seed students if none exist
+        if database.users.count_documents({'role': 'student'}) == 0:
+            student_docs = [dict(u) for u in FALLBACK_USERS if u.get('role') == 'student']
+            if student_docs:
+                database.users.insert_many(student_docs)
+                print(f"[FindIt] Seeded {len(student_docs)} students into MongoDB users collection.")
+
+        # Seed items if empty
+        if database.items.count_documents({}) == 0:
+            item_docs = [dict(item) for item in FALLBACK_ITEMS]
+            if item_docs:
+                database.items.insert_many(item_docs)
+                print(f"[FindIt] Seeded {len(item_docs)} items into MongoDB items collection.")
+
+        # Seed claims if empty
+        if database.claims.count_documents({}) == 0 and FALLBACK_CLAIMS:
+            claim_docs = [dict(c) for c in FALLBACK_CLAIMS]
+            database.claims.insert_many(claim_docs)
+            print(f"[FindIt] Seeded {len(claim_docs)} claims into MongoDB claims collection.")
+    except Exception as e:
+        print(f"[FindIt] Seeding notice: {e}")
 
 
 # ─────────────────────────────────────────────
@@ -226,7 +261,13 @@ def validate_password(pw):
 # ─────────────────────────────────────────────
 @app.context_processor
 def inject_user():
-    return {'current_user': current_user(), 'categories': CATEGORIES, 'locations': LOCATIONS}
+    return {
+        'current_user': current_user(),
+        'categories': CATEGORIES,
+        'locations': LOCATIONS,
+        'db_connected': (get_db() is not None),
+        'db_error_message': db_error_message,
+    }
 
 
 # ─────────────────────────────────────────────
@@ -656,10 +697,10 @@ def create_item():
                     'created_at'     : datetime.utcnow(),
                     'updated_at'     : datetime.utcnow(),
                 })
-                flash('Item reported successfully!', 'success')
+                flash('Item reported successfully! (Saved directly to MongoDB collection)', 'success')
                 return redirect(url_for('item_details', item_id=str(result.inserted_id)))
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[FindIt] MongoDB insertion failed: {e}")
 
         # Fallback in-memory insertion
         new_id = add_fallback_item({
@@ -675,6 +716,7 @@ def create_item():
             'created_at'     : datetime.now(timezone.utc),
             'updated_at'     : datetime.now(timezone.utc),
         })
+        flash('⚠️ Item reported in local session! MongoDB Atlas is currently offline (IP whitelist required in Atlas Network Access).', 'warning')
         flash('Item reported successfully! (Added to live campus items)', 'success')
         return redirect(url_for('item_details', item_id=str(new_id)))
 

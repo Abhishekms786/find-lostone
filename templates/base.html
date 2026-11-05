@@ -55,6 +55,13 @@
   </div>
 </nav>
 
+<!-- ===== DB STATUS BANNER (if offline) ===== -->
+{% if not db_connected %}
+  <div style="background:#fef3c7; border-bottom:1px solid #fcd34d; color:#92400e; padding:8px 16px; font-size:0.85rem; text-align:center;">
+    ⚠️ <strong>MongoDB Atlas is Disconnected:</strong> Data is currently saving to temporary session. To save permanently to your cloud MongoDB collection, add <code>0.0.0.0/0</code> in <a href="https://cloud.mongodb.com" target="_blank" style="color:#b45309; font-weight:700; text-decoration:underline;">MongoDB Atlas &rarr; Network Access &rarr; Add IP Address</a>.
+  </div>
+{% endif %}
+
 <!-- ===== FLASH MESSAGES ===== -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
