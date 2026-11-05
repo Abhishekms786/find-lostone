@@ -12,10 +12,12 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from bson import ObjectId
 from bson.errors import InvalidId
+import uuid
 from flask import (Flask, render_template, request, redirect, url_for,
-                   flash, session, jsonify, abort)
+                   flash, session, jsonify, abort, send_from_directory)
 from pymongo import MongoClient, DESCENDING, ASCENDING
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
 from fallback_data import (
@@ -41,6 +43,26 @@ except Exception:
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.permanent_session_lifetime = timedelta(days=7)
+
+# ----- Image Upload Configuration -----
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB max upload
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_uploaded_image(file_obj):
+    """Save uploaded image with a unique name. Returns the filename or None."""
+    if file_obj and file_obj.filename and allowed_file(file_obj.filename):
+        original = secure_filename(file_obj.filename)
+        # Prefix with UUID to avoid collisions
+        unique_name = f"{uuid.uuid4().hex[:8]}_{original}"
+        file_obj.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_name))
+        return unique_name
+    return None
 
 try:
     import certifi
@@ -644,6 +666,12 @@ def dashboard():
         return render_template('dashboard.html', my_items=my_items, my_claims=[], incoming_claims=[])
 
 
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    """Serve uploaded item images."""
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
 @app.route('/items/create', methods=['GET', 'POST'])
 @login_required
 @db_required
@@ -657,7 +685,10 @@ def create_item():
         category    = request.form.get('category', 'Other')
         location    = request.form.get('location', 'Other')
         date_str    = request.form.get('date_lost_found', '')
-        image_url   = request.form.get('image_url', '').strip()
+
+        # Handle image upload
+        image_file = request.files.get('image')
+        image_filename = save_uploaded_image(image_file)
 
         errors = []
         if not title or len(title) < 3:
@@ -691,7 +722,7 @@ def create_item():
                     'category'       : category,
                     'location'       : location,
                     'date_lost_found': date_obj,
-                    'image_url'      : image_url,
+                    'image_filename' : image_filename,
                     'status'         : 'active',
                     'created_by'     : user['_id'],
                     'created_at'     : datetime.utcnow(),
@@ -710,7 +741,7 @@ def create_item():
             'category'       : category,
             'location'       : location,
             'date_lost_found': date_obj,
-            'image_url'      : image_url,
+            'image_filename' : image_filename,
             'status'         : 'active',
             'created_by'     : user['_id'],
             'created_at'     : datetime.now(timezone.utc),
@@ -751,7 +782,13 @@ def edit_item(item_id):
         category    = request.form.get('category', 'Other')
         location    = request.form.get('location', 'Other')
         date_str    = request.form.get('date_lost_found', '')
-        image_url   = request.form.get('image_url', '').strip()
+
+        # Handle image upload
+        image_file = request.files.get('image')
+        image_filename = save_uploaded_image(image_file)
+        # Keep existing image if no new one uploaded
+        if not image_filename:
+            image_filename = item.get('image_filename')
 
         errors = []
         if not title or len(title) < 3:
@@ -778,7 +815,7 @@ def edit_item(item_id):
                     'category'       : category,
                     'location'       : location,
                     'date_lost_found': date_obj,
-                    'image_url'      : image_url,
+                    'image_filename' : image_filename,
                     'updated_at'     : datetime.utcnow(),
                 }})
             except Exception:
@@ -789,7 +826,7 @@ def edit_item(item_id):
         item['category'] = category
         item['location'] = location
         item['date_lost_found'] = date_obj
-        item['image_url'] = image_url
+        item['image_filename'] = image_filename
         flash('Item updated successfully!', 'success')
         return redirect(url_for('item_details', item_id=item_id))
 

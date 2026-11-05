@@ -1,7 +1,9 @@
 <div class="item-card">
   <a href="{{ url_for('item_details', item_id=item._id) }}" class="item-card-link">
     <div class="item-card-image">
-      {% if item.image_url %}
+      {% if item.image_filename %}
+        <img src="{{ url_for('uploaded_file', filename=item.image_filename) }}" alt="{{ item.title }}" onerror="this.parentElement.classList.add('no-image')" loading="lazy"/>
+      {% elif item.image_url %}
         <img src="{{ item.image_url }}" alt="{{ item.title }}" onerror="this.parentElement.classList.add('no-image')" loading="lazy"/>
       {% else %}
         <div class="item-placeholder-icon">

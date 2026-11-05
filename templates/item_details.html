@@ -16,7 +16,14 @@
     <!-- ===== LEFT: IMAGE ===== -->
     <div class="item-detail-image-col">
       <div class="item-detail-image-card">
-        {% if item.image_url %}
+        {% if item.image_filename %}
+          <img src="{{ url_for('uploaded_file', filename=item.image_filename) }}" alt="{{ item.title }}" class="item-detail-img"
+               onerror="this.style.display='none';document.getElementById('imgPlaceholder').style.display='flex'" />
+          <div id="imgPlaceholder" class="item-detail-placeholder" style="display:none">
+            {% set cat_icons = {'Electronics':'💻','Mobile Phones':'📱','Wallets':'👛','Identity Cards':'🪪','Books and Notes':'📚','Bags':'🎒','Keys':'🔑','Accessories':'💍','Clothing':'👕','Other':'📦'} %}
+            {{ cat_icons.get(item.category, '📦') }}
+          </div>
+        {% elif item.image_url %}
           <img src="{{ item.image_url }}" alt="{{ item.title }}" class="item-detail-img"
                onerror="this.style.display='none';document.getElementById('imgPlaceholder').style.display='flex'" />
           <div id="imgPlaceholder" class="item-detail-placeholder" style="display:none">

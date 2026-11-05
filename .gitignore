@@ -46,3 +46,7 @@ venv.bak/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Uploaded images (keep directory, ignore files)
+static/uploads/*
+!static/uploads/.gitkeep
